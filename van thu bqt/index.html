@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sổ Văn Thư — Ban Quản Trị Chung Cư</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===================== DESIGN TOKENS ===================== */
+:root{
+  --paper:#FAF8F3;
+  --paper-2:#F2EEE3;
+  --ink:#23262B;
+  --ink-soft:#5B5A52;
+  --teal:#123C39;
+  --teal-light:#1F5C57;
+  --teal-pale:#E7EEEC;
+  --gold:#B8863B;
+  --gold-pale:#F3E7D2;
+  --line:#DDD6C8;
+  --danger:#A3423D;
+  --danger-pale:#F5E4E2;
+  --radius:4px;
+  --shadow:0 1px 2px rgba(35,38,43,.06), 0 4px 14px rgba(35,38,43,.06);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  padding-top:env(safe-area-inset-top,0);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+h1,h2,h3,.serif{font-family:'Source Serif 4',Georgia,serif;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+a{color:var(--teal);}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+
+/* ===================== LOGIN ===================== */
+#loginScreen{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(18,60,57,.05), transparent 40%),
+    var(--paper);
+  padding:24px;
+}
+.login-card{
+  width:100%;max-width:380px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:36px 32px;
+  box-shadow:var(--shadow);
+}
+.login-seal{
+  width:52px;height:52px;border-radius:50%;
+  background:var(--teal);color:var(--gold-pale);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;
+  margin-bottom:18px;
+}
+.login-card h1{font-size:22px;margin:0 0 4px;color:var(--teal);}
+.login-card p.sub{margin:0 0 24px;color:var(--ink-soft);font-size:13.5px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);
+  font-size:14.5px;background:var(--paper);color:var(--ink);
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--teal-light);box-shadow:0 0 0 3px var(--teal-pale);
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 16px;border-radius:var(--radius);border:1px solid transparent;
+  font-size:14px;font-weight:600;transition:filter .12s ease;
+}
+.btn:hover{filter:brightness(1.06);}
+.btn:active{filter:brightness(.95);}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-secondary{background:#fff;border-color:var(--line);color:var(--ink);}
+.btn-ghost{background:transparent;color:var(--teal);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.login-error{
+  background:var(--danger-pale);color:var(--danger);
+  padding:9px 12px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;display:none;
+}
+.login-hint{margin-top:16px;font-size:12px;color:var(--ink-soft);line-height:1.5;}
+
+/* ===================== APP SHELL ===================== */
+#app{display:none;height:100vh;}
+.shell{display:flex;height:100%;}
+.sidebar{
+  width:230px;flex:none;background:var(--teal);color:#EDEFE8;
+  display:flex;flex-direction:column;padding:20px 0;
+}
+.brand{padding:0 20px 18px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:10px;}
+.brand .mark{font-family:'Source Serif 4',serif;font-size:19px;font-weight:600;color:#fff;}
+.brand .tag{font-size:11.5px;color:#A9C1BC;margin-top:2px;}
+.nav{flex:1;overflow-y:auto;padding:6px 10px;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:5px;
+  color:#CBD9D5;font-size:13.5px;font-weight:500;margin-bottom:2px;
+  cursor:pointer;border-left:3px solid transparent;
+}
+.nav-item .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.55;flex:none;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.1);color:#fff;border-left-color:var(--gold);}
+.nav-section{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#7E9C96;padding:14px 12px 6px;}
+.sidebar-footer{padding:12px 16px 4px;border-top:1px solid rgba(255,255,255,.12);}
+.who{font-size:13px;color:#fff;font-weight:600;}
+.who-role{font-size:11.5px;color:#A9C1BC;margin-bottom:8px;}
+
+.main{flex:1;overflow-y:auto;background:var(--paper);}
+.topbar{
+  position:sticky;top:0;z-index:5;background:var(--paper);
+  border-bottom:1px solid var(--line);
+  padding:16px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.topbar h2{margin:0;font-size:20px;color:var(--teal);flex:1;min-width:160px;}
+.search-box{position:relative;flex:1;min-width:200px;max-width:320px;}
+.search-box input{width:100%;padding:9px 12px 9px 32px;border:1px solid var(--line);border-radius:20px;font-size:13.5px;background:#fff;}
+.search-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.5;}
+.content{padding:22px 28px 60px;}
+
+/* ===================== FILTER BAR ===================== */
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+.filter-bar select,.filter-bar input[type=date]{
+  padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);font-size:13px;background:#fff;
+}
+.filter-count{margin-left:auto;font-size:12.5px;color:var(--ink-soft);}
+
+/* ===================== RECORD LIST ===================== */
+.record{
+  display:flex;gap:0;background:#fff;border:1px solid var(--line);border-radius:5px;
+  margin-bottom:10px;overflow:hidden;cursor:pointer;transition:box-shadow .15s;
+}
+.record:hover{box-shadow:var(--shadow);}
+.record-tab{width:6px;flex:none;background:var(--teal-light);}
+.record-body{flex:1;padding:14px 16px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
+.record-main{flex:1;min-width:220px;}
+.record-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:3px;}
+.record-so{font-family:'Source Serif 4',serif;font-weight:600;color:var(--teal);font-size:15px;}
+.record-date{font-size:12px;color:var(--ink-soft);}
+.record-title{font-size:14.5px;font-weight:600;margin-bottom:3px;}
+.record-desc{font-size:13px;color:var(--ink-soft);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.record-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;}
+.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--teal-pale);color:var(--teal);white-space:nowrap;}
+.badge-gold{background:var(--gold-pale);color:#8A611F;}
+.file-count{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:4px;}
+
+.empty-state{
+  text-align:center;padding:60px 20px;color:var(--ink-soft);
+}
+.empty-state .glyph{font-size:34px;margin-bottom:10px;opacity:.5;}
+
+/* ===================== MODAL ===================== */
+.modal-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(23,26,24,.45);z-index:50;
+  align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;
+}
+.modal-backdrop.open{display:flex;}
+.modal{
+  background:#fff;border-radius:6px;width:100%;max-width:560px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:40px;
+}
+.modal.modal-wide{max-width:720px;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line);}
+.modal-head h3{margin:0;font-size:18px;color:var(--teal);}
+.modal-close{background:none;border:none;font-size:20px;color:var(--ink-soft);line-height:1;padding:4px;}
+.modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:520px){.grid-2{grid-template-columns:1fr;}}
+
+/* file rows inside detail */
+.file-row{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:5px;margin-bottom:8px;background:var(--paper);
+}
+.file-icon{width:34px;height:34px;border-radius:5px;background:var(--teal-pale);color:var(--teal);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-desc{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-actions{display:flex;gap:6px;flex:none;}
+.icon-btn{background:none;border:1px solid var(--line);border-radius:5px;padding:6px 9px;font-size:12.5px;color:var(--ink);}
+.icon-btn.danger{color:var(--danger);border-color:var(--danger-pale);}
+
+.upload-item{border:1px dashed var(--line);border-radius:5px;padding:10px;margin-bottom:8px;}
+.upload-item .fname{font-size:12.5px;font-weight:600;margin-bottom:6px;word-break:break-all;}
+.progress-bar{height:4px;background:var(--paper-2);border-radius:4px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;background:var(--gold);width:0%;transition:width .2s;}
+
+/* stats */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:16px;}
+.stat-card .num{font-family:'Source Serif 4',serif;font-size:28px;color:var(--teal);font-weight:600;}
+.stat-card .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.bar-label{width:150px;flex:none;font-size:13px;}
+.bar-track{flex:1;height:10px;background:var(--paper-2);border-radius:6px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--teal-light);}
+.bar-val{width:34px;text-align:right;font-size:12.5px;color:var(--ink-soft);}
+
+/* users admin */
+.table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+.table th,.table td{padding:10px 14px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--line);}
+.table th{background:var(--paper-2);font-weight:600;color:var(--ink-soft);font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+.table tr:last-child td{border-bottom:none;}
+
+/* toast */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;padding:11px 20px;border-radius:6px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:all .25s ease;z-index:100;max-width:90vw;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.error{background:var(--danger);}
+
+/* mobile */
+.hamburger{display:none;background:none;border:none;font-size:20px;color:var(--teal);}
+@media(max-width:860px){
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);
+    transition:transform .2s ease;box-shadow:8px 0 30px rgba(0,0,0,.2);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .hamburger{display:inline-flex;}
+  .topbar{padding:14px 16px;}
+  .content{padding:16px;}
+  .record-body{padding:12px;}
+  .sidebar-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:35;}
+  .sidebar-scrim.open{display:block;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-seal">BQT</div>
+    <h1>Sổ Văn Thư</h1>
+    <p class="sub">Quản lý công văn, thông báo &amp; hồ sơ nội bộ chung cư</p>
+    <div class="login-error" id="loginError"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>Tên đăng nhập</label>
+        <input type="text" id="loginUsername" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>Mật khẩu</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Đăng nhập</button>
+    </form>
+    <p class="login-hint">Tài khoản mặc định lần đầu: <b>admin / admin123</b> — hãy đổi mật khẩu ngay sau khi vào hệ thống.</p>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <div class="shell">
+    <div class="sidebar-scrim" id="scrim"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="mark">Sổ Văn Thư</div>
+        <div class="tag">Ban Quản Trị Chung Cư</div>
+      </div>
+      <nav class="nav" id="navList"></nav>
+      <div class="sidebar-footer">
+        <div class="who" id="whoName"></div>
+        <div class="who-role" id="whoRole"></div>
+        <button class="btn btn-secondary btn-block" id="logoutBtn" style="margin-top:4px;">Đăng xuất</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <button class="hamburger" id="hamburger">☰</button>
+        <h2 id="pageTitle">Tổng quan</h2>
+        <div class="search-box" id="searchBoxWrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Tìm số, tên, nội dung văn bản…">
+        </div>
+        <button class="btn btn-primary" id="newRecordBtn">+ Tạo hồ sơ</button>
+      </div>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ===================== MODAL: Tạo/Sửa hồ sơ ===================== -->
+<div class="modal-backdrop" id="recordModalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="recordModalTitle">Tạo hồ sơ mới</h3>
+      <button class="modal-close" data-close="recordModalBackdrop">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Phân loại *</label>
+        <select id="rf_phanLoai"></select>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Số văn bản</label>
+          <input type="text" id="rf_soVanBan" placeholder="VD: 12/TB-BQT">
+        </div>
+        <div class="field">
+          <label>Ngày giờ *</label>
+          <input type="datetime-local" id="rf_ngayGio">
+        </div>
+      </div>
+      <div class="field">
+        <label>Tên văn bản *</label>
+        <input type="text" id="rf_tenVanBan" placeholder="VD: Thông báo lịch bảo trì thang máy">
+      </div>
+      <div class="field">
+        <label>Nội dung</label>
+        <textarea id="rf_noiDung" rows="3" placeholder="Nội dung chi tiết…"></textarea>
+      </div>
+      <div class="field">
+        <label>Mô tả ngắn gọn</label>
+        <input type="text" id="rf_moTa" placeholder="Ghi chú ngắn để dễ tra cứu sau này">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-close="recordModalBackdrop">Huỷ</button>
+      <button class="btn btn-primary" id="recordSaveBtn">Lưu hồ sơ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: Chi tiết hồ sơ ===================== -->
+<div class="modal-backdrop" id="detailModalBackdrop">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3 id="detailTitle">Chi tiết hồ sơ</h3>
+      <button class="modal-close" data-close="detailModalBackdrop">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="deleteRecordBtn" style="margin-right:auto;">Xoá hồ sơ</button>
+      <button class="btn btn-secondary" data-close="detailModalBackdrop">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: Quick view file ===================== -->
+<div class="modal-backdrop" id="viewModalBackdrop">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3 id="viewTitle">Xem nhanh</h3>
+      <button class="modal-close" data-close="viewModalBackdrop">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;max-height:75vh;">
+      <iframe id="viewFrame" style="width:100%;height:70vh;border:none;display:block;"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: Người dùng (admin) ===================== -->
+<div class="modal-backdrop" id="userModalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Tạo tài khoản mới</h3>
+      <button class="modal-close" data-close="userModalBackdrop">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Tên đăng nhập *</label><input type="text" id="uf_username"></div>
+      <div class="field"><label>Họ tên</label><input type="text" id="uf_fullName"></div>
+      <div class="field"><label>Mật khẩu *</label><input type="password" id="uf_password"></div>
+      <div class="field">
+        <label>Vai trò</label>
+        <select id="uf_role"><option value="user">Người dùng</option><option value="admin">Quản trị viên</option></select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-close="userModalBackdrop">Huỷ</button>
+      <button class="btn btn-primary" id="userSaveBtn">Tạo tài khoản</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   CẤU HÌNH: KHÔNG dán URL Apps Script trực tiếp ở đây nữa.
+   Trang gọi qua proxy nội bộ "/api" (Cloudflare Pages Function trong
+   functions/api.js), nơi URL Apps Script thật được giữ bí mật dưới dạng
+   biến môi trường GAS_URL trên Cloudflare — không lộ ra phía trình duyệt.
+   Xem HUONG_DAN_TRIEN_KHAI.md để cấu hình biến môi trường này.
+   ===================================================================== */
+const API_URL = "/api";
+
+/* ===================== STATE ===================== */
+const state = {
+  token: localStorage.getItem('svt_token') || null,
+  user: JSON.parse(localStorage.getItem('svt_user') || 'null'),
+  categories: [],
+  currentCategory: null, // null = tổng quan (tất cả)
+  view: 'list', // list | stats | users
+  filters: { keyword: '', tuNgay: '', denNgay: '', page: 1, pageSize: 20 },
+  currentRecord: null,
+};
+
+/* ===================== API WRAPPER ===================== */
+async function api(action, payload = {}) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // tránh CORS preflight với Apps Script
+    body: JSON.stringify(Object.assign({ action, token: state.token }, payload))
+  });
+  const raw = await res.text();
+  let json;
+  try {
+    json = JSON.parse(raw);
+  } catch (e) {
+    throw new Error(
+      'Phản hồi không hợp lệ từ máy chủ (HTTP ' + res.status + '). ' +
+      (raw ? 'Nội dung nhận được: ' + raw.slice(0, 300) : 'Phản hồi rỗng — kiểm tra biến môi trường GAS_URL trên Cloudflare và việc deploy Apps Script.')
+    );
+  }
+  if (!json.ok) throw new Error(json.error || 'Lỗi không xác định');
+  return json.data;
+}
+
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = isError ? 'show error' : 'show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ===================== AUTH ===================== */
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const errBox = document.getElementById('loginError');
+  errBox.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Đang đăng nhập…';
+  try {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const data = await api('login', { username, password });
+    state.token = data.token;
+    state.user = data;
+    localStorage.setItem('svt_token', data.token);
+    localStorage.setItem('svt_user', JSON.stringify(data));
+    await boot();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Đăng nhập';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  localStorage.removeItem('svt_token');
+  localStorage.removeItem('svt_user');
+  location.reload();
+});
+
+/* ===================== BOOT ===================== */
+async function boot() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('whoName').textContent = state.user.fullName || state.user.username;
+  document.getElementById('whoRole').textContent = state.user.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
+
+  try {
+    state.categories = await api('getCategories');
+  } catch (err) {
+    toast(err.message, true);
+    return;
+  }
+  renderNav();
+  goTo('list', null);
+}
+
+function renderNav() {
+  const nav = document.getElementById('navList');
+  let html = '';
+  html += navItem('📋', 'Tổng quan', 'list', null, state.currentCategory === null && state.view === 'list');
+  html += `<div class="nav-section">Loại văn bản</div>`;
+  state.categories.forEach(c => {
+    html += navItem('•', c, 'list', c, state.currentCategory === c && state.view === 'list');
+  });
+  html += `<div class="nav-section">Khác</div>`;
+  html += navItem('📊', 'Thống kê', 'stats', null, state.view === 'stats');
+  if (state.user.role === 'admin') {
+    html += navItem('👤', 'Người dùng', 'users', null, state.view === 'users');
+  }
+  nav.innerHTML = html;
+  nav.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', () => {
+      goTo(el.dataset.view, el.dataset.cat || null);
+      closeSidebarMobile();
+    });
+  });
+}
+function navItem(icon, label, view, cat, active) {
+  return `<div class="nav-item ${active ? 'active' : ''}" data-view="${view}" data-cat="${cat || ''}">
+    <span class="dot"></span><span>${escapeHtml(label)}</span>
+  </div>`;
+}
+
+function goTo(view, cat) {
+  state.view = view;
+  state.currentCategory = cat;
+  state.filters.page = 1;
+  document.getElementById('searchBoxWrap').style.display = view === 'list' ? 'block' : 'none';
+  document.getElementById('newRecordBtn').style.display = view === 'list' || view === 'users' ? 'inline-flex' : 'none';
+  document.getElementById('newRecordBtn').textContent = view === 'users' ? '+ Tạo tài khoản' : '+ Tạo hồ sơ';
+  document.getElementById('pageTitle').textContent = cat || (view === 'stats' ? 'Thống kê' : view === 'users' ? 'Người dùng' : 'Tổng quan');
+  renderNav();
+  render();
+}
+
+/* ===================== RENDER ROUTER ===================== */
+async function render() {
+  const content = document.getElementById('content');
+  if (state.view === 'stats') return renderStats(content);
+  if (state.view === 'users') return renderUsers(content);
+  return renderList(content);
+}
+
+/* ===================== LIST VIEW ===================== */
+async function renderList(content) {
+  content.innerHTML = `
+    <div class="filter-bar">
+      <input type="date" id="f_tuNgay" title="Từ ngày">
+      <input type="date" id="f_denNgay" title="Đến ngày">
+      <button class="btn btn-secondary" id="f_apply">Lọc</button>
+      <button class="btn btn-ghost" id="f_clear">Xoá lọc</button>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+    <div id="recordList">Đang tải…</div>
+  `;
+  document.getElementById('f_tuNgay').value = state.filters.tuNgay;
+  document.getElementById('f_denNgay').value = state.filters.denNgay;
+  document.getElementById('f_apply').addEventListener('click', () => {
+    state.filters.tuNgay = document.getElementById('f_tuNgay').value;
+    state.filters.denNgay = document.getElementById('f_denNgay').value;
+    loadList();
+  });
+  document.getElementById('f_clear').addEventListener('click', () => {
+    state.filters.tuNgay = ''; state.filters.denNgay = ''; state.filters.keyword = '';
+    document.getElementById('searchInput').value = '';
+    loadList();
+  });
+  await loadList();
+}
+
+let searchDebounce;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    state.filters.keyword = e.target.value;
+    state.filters.page = 1;
+    if (state.view === 'list') loadList();
+  }, 350);
+});
+
+async function loadList() {
+  const listEl = document.getElementById('recordList');
+  if (!listEl) return;
+  listEl.innerHTML = 'Đang tải…';
+  try {
+    const filters = Object.assign({}, state.filters, { phanLoai: state.currentCategory || '' });
+    const data = await api('listRecords', { filters });
+    document.getElementById('filterCount').textContent = `${data.total} hồ sơ`;
+    if (data.items.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><div class="glyph">🗂</div>Chưa có hồ sơ nào phù hợp.<br>Bấm “+ Tạo hồ sơ” để bắt đầu lưu trữ.</div>`;
+      return;
+    }
+    listEl.innerHTML = data.items.map(renderRecordRow).join('');
+    listEl.querySelectorAll('.record').forEach(el => {
+      el.addEventListener('click', () => openDetail(el.dataset.id));
+    });
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderRecordRow(r) {
+  return `
+  <div class="record" data-id="${r.id}">
+    <div class="record-tab"></div>
+    <div class="record-body">
+      <div class="record-main">
+        <div class="record-top">
+          ${r.soVanBan ? `<span class="record-so">${escapeHtml(r.soVanBan)}</span>` : ''}
+          <span class="record-date">${formatDateTime(r.ngayGio)}</span>
+        </div>
+        <div class="record-title">${escapeHtml(r.tenVanBan)}</div>
+        ${r.moTa ? `<div class="record-desc">${escapeHtml(r.moTa)}</div>` : ''}
+      </div>
+      <div class="record-meta">
+        <span class="badge">${escapeHtml(r.phanLoai)}</span>
+        <span class="file-count">📎 ${r.soFile} file</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ===================== TẠO / SỬA HỒ SƠ ===================== */
+document.getElementById('newRecordBtn').addEventListener('click', () => {
+  if (state.view === 'users') { openUserModal(); return; }
+  openRecordModal();
+});
+
+function openRecordModal() {
+  document.getElementById('recordModalTitle').textContent = 'Tạo hồ sơ mới';
+  const sel = document.getElementById('rf_phanLoai');
+  sel.innerHTML = state.categories.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+  if (state.currentCategory) sel.value = state.currentCategory;
+  document.getElementById('rf_soVanBan').value = '';
+  document.getElementById('rf_ngayGio').value = toDatetimeLocal(new Date());
+  document.getElementById('rf_tenVanBan').value = '';
+  document.getElementById('rf_noiDung').value = '';
+  document.getElementById('rf_moTa').value = '';
+  openModal('recordModalBackdrop');
+}
+
+document.getElementById('recordSaveBtn').addEventListener('click', async () => {
+  const data = {
+    phanLoai: document.getElementById('rf_phanLoai').value,
+    soVanBan: document.getElementById('rf_soVanBan').value.trim(),
+    ngayGio: document.getElementById('rf_ngayGio').value,
+    tenVanBan: document.getElementById('rf_tenVanBan').value.trim(),
+    noiDung: document.getElementById('rf_noiDung').value.trim(),
+    moTa: document.getElementById('rf_moTa').value.trim(),
+  };
+  if (!data.tenVanBan) { toast('Vui lòng nhập tên văn bản', true); return; }
+  try {
+    const rec = await api('createRecord', { data });
+    closeModal('recordModalBackdrop');
+    toast('Đã tạo hồ sơ. Bạn có thể thêm file đính kèm ngay bây giờ.');
+    await loadList();
+    openDetail(rec.id);
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+/* ===================== CHI TIẾT HỒ SƠ + FILE ===================== */
+async function openDetail(id) {
+  openModal('detailModalBackdrop');
+  document.getElementById('detailBody').innerHTML = 'Đang tải…';
+  try {
+    const rec = await api('getRecordDetail', { hoSoId: id });
+    state.currentRecord = rec;
+    renderDetail(rec);
+  } catch (err) {
+    document.getElementById('detailBody').innerHTML = escapeHtml(err.message);
+  }
+}
+
+function renderDetail(rec) {
+  document.getElementById('detailTitle').textContent = rec.soVanBan ? `${rec.soVanBan} — ${rec.tenVanBan}` : rec.tenVanBan;
+  const filesHtml = rec.files.length
+    ? rec.files.map(f => `
+      <div class="file-row">
+        <div class="file-icon">📄</div>
+        <div class="file-info">
+          <div class="file-name">${escapeHtml(f.tenHienThi)}</div>
+          <div class="file-desc">${escapeHtml(f.moTa || '')} · ${formatSize(f.kichThuoc)} · tải lên bởi ${escapeHtml(f.nguoiUpload)}</div>
+        </div>
+        <div class="file-actions">
+          <button class="icon-btn" onclick="quickView('${f.driveFileId}','${escapeAttr(f.tenHienThi)}')">Xem nhanh</button>
+          <button class="icon-btn" onclick="window.open('${f.driveUrl}','_blank')">Mở gốc</button>
+          <button class="icon-btn danger" onclick="removeFile('${f.id}')">Xoá</button>
+        </div>
+      </div>`).join('')
+    : `<p style="color:var(--ink-soft);font-size:13.5px;">Chưa có file đính kèm nào.</p>`;
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="grid-2" style="margin-bottom:14px;">
+      <div><label style="font-size:11.5px;color:var(--ink-soft);">Số văn bản</label><div>${escapeHtml(rec.soVanBan || '—')}</div></div>
+      <div><label style="font-size:11.5px;color:var(--ink-soft);">Ngày giờ</label><div>${formatDateTime(rec.ngayGio)}</div></div>
+      <div><label style="font-size:11.5px;color:var(--ink-soft);">Phân loại</label><div><span class="badge">${escapeHtml(rec.phanLoai)}</span></div></div>
+      <div><label style="font-size:11.5px;color:var(--ink-soft);">Người tạo</label><div>${escapeHtml(rec.nguoiTao)}</div></div>
+    </div>
+    ${rec.noiDung ? `<div style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-soft);">Nội dung</label><div style="font-size:14px;white-space:pre-wrap;">${escapeHtml(rec.noiDung)}</div></div>` : ''}
+    ${rec.moTa ? `<div style="margin-bottom:16px;"><label style="font-size:11.5px;color:var(--ink-soft);">Mô tả</label><div style="font-size:14px;">${escapeHtml(rec.moTa)}</div></div>` : ''}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 style="margin:0;font-size:15px;">File đính kèm (${rec.files.length})</h3>
+      <button class="btn btn-secondary" id="pickFilesBtn">+ Thêm file</button>
+    </div>
+    <div id="fileList">${filesHtml}</div>
+    <input type="file" id="filePicker" multiple style="display:none;">
+    <div id="uploadQueue"></div>
+    <div style="margin-top:10px;">
+      <a href="${rec.folderUrl}" target="_blank" style="font-size:12.5px;">📁 Mở thư mục gốc trên Google Drive</a>
+    </div>
+  `;
+  document.getElementById('pickFilesBtn').addEventListener('click', () => document.getElementById('filePicker').click());
+  document.getElementById('filePicker').addEventListener('change', onFilesPicked);
+
+  document.getElementById('deleteRecordBtn').onclick = () => deleteRecordConfirm(rec.id);
+}
+
+function onFilesPicked(e) {
+  const files = Array.from(e.target.files);
+  const queue = document.getElementById('uploadQueue');
+  files.forEach((file, idx) => {
+    const uid = 'u' + Date.now() + '_' + idx;
+    const box = document.createElement('div');
+    box.className = 'upload-item';
+    box.id = uid;
+    box.innerHTML = `
+      <div class="fname">${escapeHtml(file.name)} <span style="color:var(--ink-soft);font-weight:400;">(${formatSize(file.size)})</span></div>
+      <div class="field" style="margin-bottom:6px;"><input type="text" placeholder="Tên hiển thị" value="${escapeAttr(file.name)}" data-role="displayName"></div>
+      <div class="field" style="margin-bottom:6px;"><input type="text" placeholder="Mô tả ngắn (tuỳ chọn)" data-role="desc"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary" data-role="upload">Tải lên</button>
+        <span data-role="status" style="font-size:12px;color:var(--ink-soft);"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" data-role="progress"></div></div>
+    `;
+    queue.appendChild(box);
+    box.querySelector('[data-role=upload]').addEventListener('click', () => uploadOne(file, box));
+  });
+  e.target.value = '';
+}
+
+async function uploadOne(file, box) {
+  const btn = box.querySelector('[data-role=upload]');
+  const status = box.querySelector('[data-role=status]');
+  const bar = box.querySelector('[data-role=progress]');
+  const displayName = box.querySelector('[data-role=displayName]').value.trim() || file.name;
+  const desc = box.querySelector('[data-role=desc]').value.trim();
+  btn.disabled = true; status.textContent = 'Đang đọc file…'; bar.style.width = '20%';
+  try {
+    const base64 = await fileToBase64(file);
+    bar.style.width = '60%'; status.textContent = 'Đang tải lên Google Drive…';
+    await api('uploadFile', {
+      hoSoId: state.currentRecord.id,
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      base64Data: base64,
+      displayName, moTa: desc
+    });
+    bar.style.width = '100%'; status.textContent = 'Hoàn tất ✓';
+    toast('Đã tải lên: ' + displayName);
+    const rec = await api('getRecordDetail', { hoSoId: state.currentRecord.id });
+    state.currentRecord = rec;
+    renderDetail(rec);
+    loadList();
+  } catch (err) {
+    status.textContent = 'Lỗi: ' + err.message;
+    btn.disabled = false;
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function removeFile(fileId) {
+  if (!confirm('Xoá file này? File sẽ được chuyển vào thùng rác trên Google Drive.')) return;
+  try {
+    await api('deleteFile', { fileId });
+    toast('Đã xoá file.');
+    const rec = await api('getRecordDetail', { hoSoId: state.currentRecord.id });
+    state.currentRecord = rec;
+    renderDetail(rec);
+    loadList();
+  } catch (err) { toast(err.message, true); }
+}
+
+async function deleteRecordConfirm(id) {
+  if (!confirm('Xoá toàn bộ hồ sơ này và mọi file bên trong? Không thể hoàn tác.')) return;
+  try {
+    await api('deleteRecord', { hoSoId: id });
+    closeModal('detailModalBackdrop');
+    toast('Đã xoá hồ sơ.');
+    loadList();
+  } catch (err) { toast(err.message, true); }
+}
+
+function quickView(driveFileId, name) {
+  document.getElementById('viewTitle').textContent = name;
+  document.getElementById('viewFrame').src = `https://drive.google.com/file/d/${driveFileId}/preview`;
+  openModal('viewModalBackdrop');
+}
+
+/* ===================== THỐNG KÊ ===================== */
+async function renderStats(content) {
+  content.innerHTML = 'Đang tải thống kê…';
+  try {
+    const s = await api('getStats');
+    const months = Object.keys(s.byMonth).sort().slice(-12);
+    const maxMonth = Math.max(1, ...months.map(m => s.byMonth[m]));
+    const maxCat = Math.max(1, ...Object.values(s.byCategory));
+
+    content.innerHTML = `
+      <div class="stat-cards">
+        <div class="stat-card"><div class="num">${s.totalRecords}</div><div class="lbl">Tổng số hồ sơ</div></div>
+        <div class="stat-card"><div class="num">${s.totalFiles}</div><div class="lbl">Tổng số file đính kèm</div></div>
+        <div class="stat-card"><div class="num">${Object.keys(s.byCategory).length}</div><div class="lbl">Loại văn bản</div></div>
+      </div>
+      <h3 style="font-size:15px;">Theo phân loại</h3>
+      <div style="margin-bottom:26px;">
+        ${Object.entries(s.byCategory).map(([k, v]) => `
+          <div class="bar-row">
+            <div class="bar-label">${escapeHtml(k)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(v/maxCat*100).toFixed(0)}%"></div></div>
+            <div class="bar-val">${v}</div>
+          </div>`).join('')}
+      </div>
+      <h3 style="font-size:15px;">Theo tháng (12 tháng gần nhất có dữ liệu)</h3>
+      <div>
+        ${months.length ? months.map(m => `
+          <div class="bar-row">
+            <div class="bar-label">${m}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(s.byMonth[m]/maxMonth*100).toFixed(0)}%;background:var(--gold);"></div></div>
+            <div class="bar-val">${s.byMonth[m]}</div>
+          </div>`).join('') : '<p style="color:var(--ink-soft);font-size:13.5px;">Chưa có dữ liệu.</p>'}
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = escapeHtml(err.message);
+  }
+}
+
+/* ===================== NGƯỜI DÙNG (ADMIN) ===================== */
+async function renderUsers(content) {
+  if (state.user.role !== 'admin') { content.innerHTML = 'Bạn không có quyền truy cập mục này.'; return; }
+  content.innerHTML = 'Đang tải…';
+  try {
+    const users = await api('listUsers');
+    content.innerHTML = `
+      <table class="table">
+        <thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Vai trò</th><th>Ngày tạo</th><th></th></tr></thead>
+        <tbody>
+          ${users.map(u => `
+            <tr>
+              <td>${escapeHtml(u.username)}</td>
+              <td>${escapeHtml(u.fullName || '')}</td>
+              <td>${u.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</td>
+              <td>${formatDateTime(u.createdAt)}</td>
+              <td>${u.username !== state.user.username ? `<button class="icon-btn danger" onclick="deleteUserConfirm('${escapeAttr(u.username)}')">Xoá</button>` : ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    content.innerHTML = escapeHtml(err.message);
+  }
+}
+
+function openUserModal() {
+  document.getElementById('uf_username').value = '';
+  document.getElementById('uf_fullName').value = '';
+  document.getElementById('uf_password').value = '';
+  document.getElementById('uf_role').value = 'user';
+  openModal('userModalBackdrop');
+}
+document.getElementById('userSaveBtn').addEventListener('click', async () => {
+  const data = {
+    username: document.getElementById('uf_username').value.trim(),
+    fullName: document.getElementById('uf_fullName').value.trim(),
+    password: document.getElementById('uf_password').value,
+    role: document.getElementById('uf_role').value,
+  };
+  if (!data.username || !data.password) { toast('Thiếu tên đăng nhập hoặc mật khẩu', true); return; }
+  try {
+    await api('createUser', { data });
+    closeModal('userModalBackdrop');
+    toast('Đã tạo tài khoản.');
+    render();
+  } catch (err) { toast(err.message, true); }
+});
+async function deleteUserConfirm(username) {
+  if (!confirm(`Xoá tài khoản "${username}"?`)) return;
+  try { await api('deleteUser', { username }); toast('Đã xoá tài khoản.'); render(); }
+  catch (err) { toast(err.message, true); }
+}
+
+/* ===================== MODAL HELPERS ===================== */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-backdrop').forEach(bd => {
+  bd.addEventListener('click', (e) => { if (e.target === bd) bd.classList.remove('open'); });
+});
+document.getElementById('viewModalBackdrop').addEventListener('transitionend', () => {});
+document.querySelector('[data-close=viewModalBackdrop]').addEventListener('click', () => {
+  document.getElementById('viewFrame').src = '';
+});
+
+/* ===================== SIDEBAR MOBILE ===================== */
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+});
+document.getElementById('scrim').addEventListener('click', closeSidebarMobile);
+function closeSidebarMobile() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+}
+
+/* ===================== UTILS ===================== */
+function escapeHtml(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str) { return escapeHtml(str).replace(/`/g, '&#96;'); }
+function formatDateTime(v) {
+  const d = new Date(v);
+  if (isNaN(d)) return '';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function toDatetimeLocal(d) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function formatSize(bytes) {
+  if (!bytes) return '0 KB';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+/* ===================== INIT ===================== */
+(function init() {
+  if (state.token && state.user) {
+    boot().catch(() => {
+      localStorage.removeItem('svt_token'); localStorage.removeItem('svt_user');
+      location.reload();
+    });
+  }
+})();
+</script>
+</body>
+</html>
