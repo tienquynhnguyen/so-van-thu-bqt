@@ -154,12 +154,25 @@ a{color:var(--teal);}
 .record-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;}
 .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--teal-pale);color:var(--teal);white-space:nowrap;}
 .badge-gold{background:var(--gold-pale);color:#8A611F;}
+.status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+.status-badge{
+  font-size:11px;font-weight:600;padding:3px 9px 3px 7px;border-radius:20px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;
+}
 .file-count{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:4px;}
 
 .empty-state{
   text-align:center;padding:60px 20px;color:var(--ink-soft);
 }
 .empty-state .glyph{font-size:34px;margin-bottom:10px;opacity:.5;}
+
+.skeleton-row{pointer-events:none;}
+.skeleton-line{
+  height:11px;border-radius:4px;margin-bottom:8px;
+  background:linear-gradient(90deg, var(--paper-2) 25%, #E8E3D6 37%, var(--paper-2) 63%);
+  background-size:400% 100%;animation:skeleton-shimmer 1.4s ease infinite;
+}
+@keyframes skeleton-shimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
 
 /* ===================== MODAL ===================== */
 .modal-backdrop{
@@ -336,6 +349,10 @@ a{color:var(--teal);}
         <label>Phân loại *</label>
         <select id="rf_phanLoai"></select>
       </div>
+      <div class="field">
+        <label>Trạng thái</label>
+        <select id="rf_trangThai"></select>
+      </div>
       <div class="grid-2">
         <div class="field">
           <label>Số văn bản</label>
@@ -441,6 +458,30 @@ a{color:var(--teal);}
   </div>
 </div>
 
+<!-- ===================== MODAL: Trạng thái (admin) ===================== -->
+<div class="modal-backdrop" id="statusModalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="statusModalTitle">Thêm trạng thái mới</h3>
+      <button class="modal-close" data-close="statusModalBackdrop">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Tên trạng thái *</label><input type="text" id="sf_ten" placeholder="VD: Tiếp nhận"></div>
+      <div class="field">
+        <label>Màu hiển thị</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="color" id="sf_mau" value="#5B7FDE" style="width:44px;height:34px;padding:2px;border:1px solid var(--line);border-radius:5px;">
+          <span style="font-size:12.5px;color:var(--ink-soft);">Dùng để tô màu nhãn trạng thái trong danh sách hồ sơ</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-close="statusModalBackdrop">Huỷ</button>
+      <button class="btn btn-primary" id="statusSaveBtn">Lưu</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =====================================================================
    CẤU HÌNH: KHÔNG dán URL Apps Script trực tiếp ở đây nữa.
@@ -456,9 +497,10 @@ const state = {
   token: localStorage.getItem('svt_token') || null,
   user: JSON.parse(localStorage.getItem('svt_user') || 'null'),
   categories: [], // [{id, ten, thuTu}]
+  statuses: [], // [{id, ten, mau, thuTu}]
   currentCategory: null, // tên danh mục (string) đang lọc, null = tổng quan (tất cả)
-  view: 'list', // list | stats | users | categories
-  filters: { keyword: '', tuNgay: '', denNgay: '', page: 1, pageSize: 20 },
+  view: 'list', // list | stats | users | categories | statuses
+  filters: { keyword: '', tuNgay: '', denNgay: '', trangThai: '', page: 1, pageSize: 20 },
   currentRecord: null,
 };
 
@@ -528,14 +570,32 @@ async function boot() {
   document.getElementById('whoName').textContent = state.user.fullName || state.user.username;
   document.getElementById('whoRole').textContent = state.user.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
 
+  // Hiển thị ngay từ dữ liệu đã lưu trước đó (nếu có) để vào app tức thì,
+  // không phải chờ mạng — sau đó âm thầm làm mới lại phía dưới.
   try {
-    state.categories = await api('getCategories');
+    const cachedCats = JSON.parse(localStorage.getItem('svt_categories') || 'null');
+    const cachedStatuses = JSON.parse(localStorage.getItem('svt_statuses') || 'null');
+    if (cachedCats) state.categories = cachedCats;
+    if (cachedStatuses) state.statuses = cachedStatuses;
+  } catch (e) {}
+
+  if (state.categories.length) {
+    renderNav();
+    goTo('list', null);
+  }
+
+  try {
+    const [cats, statuses] = await Promise.all([api('getCategories'), api('getStatuses')]);
+    state.categories = cats;
+    state.statuses = statuses;
+    localStorage.setItem('svt_categories', JSON.stringify(cats));
+    localStorage.setItem('svt_statuses', JSON.stringify(statuses));
   } catch (err) {
-    toast(err.message, true);
-    return;
+    if (!state.categories.length) { toast(err.message, true); return; }
   }
   renderNav();
-  goTo('list', null);
+  if (state.view === 'list' || !state.categories.length) goTo('list', state.currentCategory);
+  else render();
 }
 
 function renderNav() {
@@ -550,6 +610,7 @@ function renderNav() {
   html += navItem('📊', 'Thống kê', 'stats', null, state.view === 'stats');
   if (state.user.role === 'admin') {
     html += navItem('🗂️', 'Quản lý danh mục', 'categories', null, state.view === 'categories');
+    html += navItem('🏷️', 'Quản lý trạng thái', 'statuses', null, state.view === 'statuses');
     html += navItem('👤', 'Người dùng', 'users', null, state.view === 'users');
   }
   nav.innerHTML = html;
@@ -571,9 +632,14 @@ function goTo(view, cat) {
   state.currentCategory = cat;
   state.filters.page = 1;
   document.getElementById('searchBoxWrap').style.display = view === 'list' ? 'block' : 'none';
-  document.getElementById('newRecordBtn').style.display = (view === 'list' || view === 'users' || view === 'categories') ? 'inline-flex' : 'none';
-  document.getElementById('newRecordBtn').textContent = view === 'users' ? '+ Tạo tài khoản' : view === 'categories' ? '+ Thêm danh mục' : '+ Tạo hồ sơ';
-  document.getElementById('pageTitle').textContent = cat || (view === 'stats' ? 'Thống kê' : view === 'users' ? 'Người dùng' : view === 'categories' ? 'Quản lý danh mục' : 'Tổng quan');
+  document.getElementById('newRecordBtn').style.display = (view === 'list' || view === 'users' || view === 'categories' || view === 'statuses') ? 'inline-flex' : 'none';
+  document.getElementById('newRecordBtn').textContent =
+    view === 'users' ? '+ Tạo tài khoản' :
+    view === 'categories' ? '+ Thêm danh mục' :
+    view === 'statuses' ? '+ Thêm trạng thái' : '+ Tạo hồ sơ';
+  document.getElementById('pageTitle').textContent = cat ||
+    (view === 'stats' ? 'Thống kê' : view === 'users' ? 'Người dùng' :
+     view === 'categories' ? 'Quản lý danh mục' : view === 'statuses' ? 'Quản lý trạng thái' : 'Tổng quan');
   renderNav();
   render();
 }
@@ -584,6 +650,7 @@ async function render() {
   if (state.view === 'stats') return renderStats(content);
   if (state.view === 'users') return renderUsers(content);
   if (state.view === 'categories') return renderCategories(content);
+  if (state.view === 'statuses') return renderStatuses(content);
   return renderList(content);
 }
 
@@ -591,6 +658,7 @@ async function render() {
 async function renderList(content) {
   content.innerHTML = `
     <div class="filter-bar">
+      <select id="f_trangThai"><option value="">Tất cả trạng thái</option></select>
       <input type="date" id="f_tuNgay" title="Từ ngày">
       <input type="date" id="f_denNgay" title="Đến ngày">
       <button class="btn btn-secondary" id="f_apply">Lọc</button>
@@ -599,15 +667,19 @@ async function renderList(content) {
     </div>
     <div id="recordList">Đang tải…</div>
   `;
+  document.getElementById('f_trangThai').innerHTML = '<option value="">Tất cả trạng thái</option>' +
+    state.statuses.map(s => `<option value="${escapeAttr(s.ten)}">${escapeHtml(s.ten)}</option>`).join('');
+  document.getElementById('f_trangThai').value = state.filters.trangThai;
   document.getElementById('f_tuNgay').value = state.filters.tuNgay;
   document.getElementById('f_denNgay').value = state.filters.denNgay;
   document.getElementById('f_apply').addEventListener('click', () => {
+    state.filters.trangThai = document.getElementById('f_trangThai').value;
     state.filters.tuNgay = document.getElementById('f_tuNgay').value;
     state.filters.denNgay = document.getElementById('f_denNgay').value;
     loadList();
   });
   document.getElementById('f_clear').addEventListener('click', () => {
-    state.filters.tuNgay = ''; state.filters.denNgay = ''; state.filters.keyword = '';
+    state.filters.tuNgay = ''; state.filters.denNgay = ''; state.filters.keyword = ''; state.filters.trangThai = '';
     document.getElementById('searchInput').value = '';
     loadList();
   });
@@ -627,28 +699,60 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
   }, 350);
 });
 
+const listCache = {}; // key: chuỗi filter -> {items, total} lần gần nhất, để hiển thị tức thì khi quay lại
+
+function listCacheKey_() {
+  const f = state.filters;
+  return JSON.stringify([state.currentCategory || '', f.keyword, f.tuNgay, f.denNgay, f.trangThai, f.page, f.pageSize]);
+}
+
 async function loadList() {
   const listEl = document.getElementById('recordList');
   if (!listEl) return;
-  listEl.innerHTML = 'Đang tải…';
+  const key = listCacheKey_();
+  const cached = listCache[key];
+
+  if (cached) {
+    // Có dữ liệu cũ: hiển thị ngay (không chờ mạng), rồi âm thầm làm mới phía dưới
+    renderRecordListInto_(listEl, cached);
+  } else {
+    listEl.innerHTML = renderListSkeleton_();
+  }
+
   try {
     const filters = Object.assign({}, state.filters, { phanLoai: state.currentCategory || '' });
     const data = await api('listRecords', { filters });
-    document.getElementById('filterCount').textContent = `${data.total} hồ sơ`;
-    if (data.items.length === 0) {
-      listEl.innerHTML = `<div class="empty-state"><div class="glyph">🗂</div>Chưa có hồ sơ nào phù hợp.<br>Bấm “+ Tạo hồ sơ” để bắt đầu lưu trữ.</div>`;
-      return;
-    }
-    listEl.innerHTML = data.items.map(renderRecordRow).join('');
-    listEl.querySelectorAll('.record').forEach(el => {
-      el.addEventListener('click', () => openDetail(el.dataset.id));
-    });
+    listCache[key] = data;
+    renderRecordListInto_(listEl, data);
   } catch (err) {
-    listEl.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+    if (!cached) listEl.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
   }
 }
 
+function renderListSkeleton_() {
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    html += `<div class="record skeleton-row"><div class="record-tab"></div><div class="record-body">
+      <div class="record-main"><div class="skeleton-line" style="width:40%;"></div><div class="skeleton-line" style="width:70%;"></div></div>
+    </div></div>`;
+  }
+  return html;
+}
+
+function renderRecordListInto_(listEl, data) {
+  document.getElementById('filterCount') && (document.getElementById('filterCount').textContent = `${data.total} hồ sơ`);
+  if (data.items.length === 0) {
+    listEl.innerHTML = `<div class="empty-state"><div class="glyph">🗂</div>Chưa có hồ sơ nào phù hợp.<br>Bấm “+ Tạo hồ sơ” để bắt đầu lưu trữ.</div>`;
+    return;
+  }
+  listEl.innerHTML = data.items.map(renderRecordRow).join('');
+  listEl.querySelectorAll('.record').forEach(el => {
+    el.addEventListener('click', () => openDetail(el.dataset.id));
+  });
+}
+
 function renderRecordRow(r) {
+  const st = state.statuses.find(s => s.ten === r.trangThai);
   return `
   <div class="record" data-id="${r.id}">
     <div class="record-tab"></div>
@@ -663,6 +767,7 @@ function renderRecordRow(r) {
       </div>
       <div class="record-meta">
         <span class="badge">${escapeHtml(r.phanLoai)}</span>
+        ${st ? `<span class="status-badge" style="background:${st.mau}22;color:${st.mau};"><span class="status-dot" style="background:${st.mau};margin-right:0;"></span>${escapeHtml(st.ten)}</span>` : ''}
         <span class="file-count">📎 ${r.soFile} file</span>
       </div>
     </div>
@@ -673,6 +778,7 @@ function renderRecordRow(r) {
 document.getElementById('newRecordBtn').addEventListener('click', () => {
   if (state.view === 'users') { openUserModal(); return; }
   if (state.view === 'categories') { openCategoryModal(); return; }
+  if (state.view === 'statuses') { openStatusModal(); return; }
   openRecordModal();
 });
 
@@ -722,6 +828,9 @@ document.getElementById('rf_relatedSearch').addEventListener('input', (e) => {
 function openRecordModal(editRecord) {
   const sel = document.getElementById('rf_phanLoai');
   sel.innerHTML = state.categories.map(c => `<option value="${escapeAttr(c.ten)}">${escapeHtml(c.ten)}</option>`).join('');
+  const statusSel = document.getElementById('rf_trangThai');
+  statusSel.innerHTML = '<option value="">— Chưa đặt —</option>' +
+    state.statuses.map(s => `<option value="${escapeAttr(s.ten)}">${escapeHtml(s.ten)}</option>`).join('');
   document.getElementById('rf_relatedSearch').value = '';
   document.getElementById('rf_relatedResults').innerHTML = '';
 
@@ -729,6 +838,7 @@ function openRecordModal(editRecord) {
     document.getElementById('recordModalTitle').textContent = 'Sửa hồ sơ';
     currentEditingRecordId = editRecord.id;
     sel.value = editRecord.phanLoai;
+    statusSel.value = editRecord.trangThai || '';
     document.getElementById('rf_soVanBan').value = editRecord.soVanBan || '';
     document.getElementById('rf_ngayGio').value = toDatetimeLocal(new Date(editRecord.ngayGio));
     document.getElementById('rf_tenVanBan').value = editRecord.tenVanBan || '';
@@ -739,6 +849,7 @@ function openRecordModal(editRecord) {
     document.getElementById('recordModalTitle').textContent = 'Tạo hồ sơ mới';
     currentEditingRecordId = null;
     if (state.currentCategory) sel.value = state.currentCategory;
+    statusSel.value = state.statuses.length ? state.statuses[0].ten : '';
     document.getElementById('rf_soVanBan').value = '';
     document.getElementById('rf_ngayGio').value = toDatetimeLocal(new Date());
     document.getElementById('rf_tenVanBan').value = '';
@@ -753,6 +864,7 @@ function openRecordModal(editRecord) {
 document.getElementById('recordSaveBtn').addEventListener('click', async () => {
   const data = {
     phanLoai: document.getElementById('rf_phanLoai').value,
+    trangThai: document.getElementById('rf_trangThai').value,
     soVanBan: document.getElementById('rf_soVanBan').value.trim(),
     ngayGio: document.getElementById('rf_ngayGio').value,
     tenVanBan: document.getElementById('rf_tenVanBan').value.trim(),
@@ -829,6 +941,7 @@ function renderDetail(rec) {
       <div><label style="font-size:11.5px;color:var(--ink-soft);">Số văn bản</label><div>${escapeHtml(rec.soVanBan || '—')}</div></div>
       <div><label style="font-size:11.5px;color:var(--ink-soft);">Ngày giờ</label><div>${formatDateTime(rec.ngayGio)}</div></div>
       <div><label style="font-size:11.5px;color:var(--ink-soft);">Phân loại</label><div><span class="badge">${escapeHtml(rec.phanLoai)}</span></div></div>
+      <div><label style="font-size:11.5px;color:var(--ink-soft);">Trạng thái</label><div>${renderStatusBadgeInline_(rec.trangThai)}</div></div>
       <div><label style="font-size:11.5px;color:var(--ink-soft);">Người tạo</label><div>${escapeHtml(rec.nguoiTao)}</div></div>
     </div>
     ${rec.noiDung ? `<div style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-soft);">Nội dung</label><div style="font-size:14px;white-space:pre-wrap;">${escapeHtml(rec.noiDung)}</div></div>` : ''}
@@ -987,6 +1100,7 @@ async function renderStats(content) {
 /* ===================== DANH MỤC (ADMIN) ===================== */
 async function reloadCategories() {
   state.categories = await api('getCategories');
+  try { localStorage.setItem('svt_categories', JSON.stringify(state.categories)); } catch (e) {}
 }
 
 async function renderCategories(content) {
@@ -995,10 +1109,14 @@ async function renderCategories(content) {
   await reloadCategories();
   content.innerHTML = `
     <table class="table">
-      <thead><tr><th>Tên danh mục</th><th style="width:160px;"></th></tr></thead>
+      <thead><tr><th style="width:70px;">Thứ tự</th><th>Tên danh mục</th><th style="width:160px;"></th></tr></thead>
       <tbody>
-        ${state.categories.map(c => `
+        ${state.categories.map((c, idx) => `
           <tr>
+            <td>
+              <button class="icon-btn" title="Lên" ${idx === 0 ? 'disabled' : ''} onclick="moveCategory(${idx},-1)">↑</button>
+              <button class="icon-btn" title="Xuống" ${idx === state.categories.length - 1 ? 'disabled' : ''} onclick="moveCategory(${idx},1)">↓</button>
+            </td>
             <td>${escapeHtml(c.ten)}</td>
             <td>
               <button class="icon-btn" onclick="renameCategoryPrompt('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Đổi tên</button>
@@ -1008,10 +1126,27 @@ async function renderCategories(content) {
       </tbody>
     </table>
     <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
-      Lưu ý: không thể xoá danh mục đang còn hồ sơ sử dụng — hãy chuyển hồ sơ sang danh mục khác hoặc xoá hồ sơ đó trước.
-      Đổi tên danh mục sẽ tự động cập nhật lại tất cả hồ sơ đang thuộc danh mục này.
+      Dùng nút ↑ ↓ để sắp xếp lại thứ tự hiển thị ngoài sidebar. Không thể xoá danh mục đang còn hồ sơ sử dụng —
+      hãy chuyển hồ sơ sang danh mục khác hoặc xoá hồ sơ đó trước. Đổi tên danh mục sẽ tự động cập nhật lại tất cả hồ sơ đang thuộc danh mục này.
     </p>
   `;
+}
+
+async function moveCategory(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= state.categories.length) return;
+  const arr = state.categories.slice();
+  [arr[idx], arr[target]] = [arr[target], arr[idx]];
+  state.categories = arr; // cập nhật giao diện ngay, khỏi chờ mạng
+  render();
+  try {
+    await api('reorderCategories', { ids: arr.map(c => c.id) });
+    renderNav();
+  } catch (err) {
+    toast(err.message, true);
+    await reloadCategories();
+    render();
+  }
 }
 
 function openCategoryModal() {
@@ -1057,6 +1192,101 @@ async function deleteCategoryConfirm(id, ten) {
     toast('Đã xoá danh mục.');
     await reloadCategories();
     renderNav();
+    render();
+  } catch (err) { toast(err.message, true); }
+}
+
+/* ===================== TRẠNG THÁI (ADMIN) ===================== */
+async function reloadStatuses() {
+  state.statuses = await api('getStatuses');
+  try { localStorage.setItem('svt_statuses', JSON.stringify(state.statuses)); } catch (e) {}
+}
+
+async function renderStatuses(content) {
+  if (state.user.role !== 'admin') { content.innerHTML = 'Bạn không có quyền truy cập mục này.'; return; }
+  content.innerHTML = 'Đang tải…';
+  await reloadStatuses();
+  content.innerHTML = `
+    <table class="table">
+      <thead><tr><th style="width:70px;">Thứ tự</th><th>Trạng thái</th><th style="width:160px;"></th></tr></thead>
+      <tbody>
+        ${state.statuses.map((s, idx) => `
+          <tr>
+            <td>
+              <button class="icon-btn" title="Lên" ${idx === 0 ? 'disabled' : ''} onclick="moveStatus(${idx},-1)">↑</button>
+              <button class="icon-btn" title="Xuống" ${idx === state.statuses.length - 1 ? 'disabled' : ''} onclick="moveStatus(${idx},1)">↓</button>
+            </td>
+            <td><span class="status-dot" style="background:${escapeAttr(s.mau || '#999')}"></span>${escapeHtml(s.ten)}</td>
+            <td>
+              <button class="icon-btn" onclick="editStatusPrompt('${escapeAttr(s.id)}','${escapeAttr(s.ten)}','${escapeAttr(s.mau||'')}')">Sửa</button>
+              <button class="icon-btn danger" onclick="deleteStatusConfirm('${escapeAttr(s.id)}','${escapeAttr(s.ten)}')">Xoá</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
+      Dùng nút ↑ ↓ để sắp xếp thứ tự. Xoá 1 trạng thái sẽ gỡ nhãn đó khỏi các hồ sơ đang dùng (hồ sơ không bị xoá, chỉ về trạng thái "Chưa đặt").
+    </p>
+  `;
+}
+
+async function moveStatus(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= state.statuses.length) return;
+  const arr = state.statuses.slice();
+  [arr[idx], arr[target]] = [arr[target], arr[idx]];
+  state.statuses = arr;
+  render();
+  try {
+    await api('reorderStatuses', { ids: arr.map(s => s.id) });
+  } catch (err) {
+    toast(err.message, true);
+    await reloadStatuses();
+    render();
+  }
+}
+
+function openStatusModal() {
+  document.getElementById('statusModalTitle').textContent = 'Thêm trạng thái mới';
+  document.getElementById('sf_ten').value = '';
+  document.getElementById('sf_mau').value = '#5B7FDE';
+  document.getElementById('statusSaveBtn').dataset.id = '';
+  openModal('statusModalBackdrop');
+}
+
+function editStatusPrompt(id, ten, mau) {
+  document.getElementById('statusModalTitle').textContent = 'Sửa trạng thái';
+  document.getElementById('sf_ten').value = ten;
+  document.getElementById('sf_mau').value = mau || '#5B7FDE';
+  document.getElementById('statusSaveBtn').dataset.id = id;
+  openModal('statusModalBackdrop');
+}
+
+document.getElementById('statusSaveBtn').addEventListener('click', async () => {
+  const ten = document.getElementById('sf_ten').value.trim();
+  const mau = document.getElementById('sf_mau').value;
+  if (!ten) { toast('Vui lòng nhập tên trạng thái', true); return; }
+  const id = document.getElementById('statusSaveBtn').dataset.id;
+  try {
+    if (id) {
+      await api('updateStatus', { id, data: { ten, mau } });
+      toast('Đã cập nhật trạng thái.');
+    } else {
+      await api('createStatus', { data: { ten, mau } });
+      toast('Đã thêm trạng thái.');
+    }
+    closeModal('statusModalBackdrop');
+    await reloadStatuses();
+    render();
+  } catch (err) { toast(err.message, true); }
+});
+
+async function deleteStatusConfirm(id, ten) {
+  if (!confirm(`Xoá trạng thái "${ten}"? Các hồ sơ đang dùng sẽ chuyển về "Chưa đặt".`)) return;
+  try {
+    await api('deleteStatus', { id });
+    toast('Đã xoá trạng thái.');
+    await reloadStatuses();
     render();
   } catch (err) { toast(err.message, true); }
 }
@@ -1141,6 +1371,13 @@ function closeSidebarMobile() {
 }
 
 /* ===================== UTILS ===================== */
+function renderStatusBadgeInline_(trangThai) {
+  if (!trangThai) return '<span style="color:var(--ink-soft);">— Chưa đặt —</span>';
+  const st = state.statuses.find(s => s.ten === trangThai);
+  const mau = st ? st.mau : '#999';
+  return `<span class="status-badge" style="background:${mau}22;color:${mau};"><span class="status-dot" style="background:${mau};margin-right:0;"></span>${escapeHtml(trangThai)}</span>`;
+}
+
 function escapeHtml(str) {
   return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
