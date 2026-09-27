@@ -58,12 +58,8 @@ a{color:var(--teal);}
   padding:36px 32px;
   box-shadow:var(--shadow);
 }
-.login-seal{
-  width:52px;height:52px;border-radius:50%;
-  background:var(--teal);color:var(--gold-pale);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;
-  margin-bottom:18px;
+.login-logo{
+  max-width:180px;max-height:80px;object-fit:contain;margin-bottom:18px;display:block;
 }
 .login-card h1{font-size:22px;margin:0 0 4px;color:var(--teal);}
 .login-card p.sub{margin:0 0 24px;color:var(--ink-soft);font-size:13.5px;}
@@ -93,7 +89,7 @@ a{color:var(--teal);}
   background:var(--danger-pale);color:var(--danger);
   padding:9px 12px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;display:none;
 }
-.login-hint{margin-top:16px;font-size:12px;color:var(--ink-soft);line-height:1.5;}
+.copyright-line{margin-top:20px;font-size:11.5px;color:var(--ink-soft);line-height:1.5;text-align:center;}
 
 /* ===================== APP SHELL ===================== */
 #app{display:none;height:100vh;}
@@ -103,6 +99,7 @@ a{color:var(--teal);}
   display:flex;flex-direction:column;padding:20px 0;
 }
 .brand{padding:0 20px 18px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:10px;}
+.brand-logo{max-width:100%;max-height:44px;object-fit:contain;margin-bottom:8px;display:block;}
 .brand .mark{font-family:'Source Serif 4',serif;font-size:19px;font-weight:600;color:#fff;}
 .brand .tag{font-size:11.5px;color:#A9C1BC;margin-top:2px;}
 .nav{flex:1;overflow-y:auto;padding:6px 10px;}
@@ -118,6 +115,7 @@ a{color:var(--teal);}
 .sidebar-footer{padding:12px 16px 4px;border-top:1px solid rgba(255,255,255,.12);}
 .who{font-size:13px;color:#fff;font-weight:600;}
 .who-role{font-size:11.5px;color:#A9C1BC;margin-bottom:8px;}
+.sidebar-copyright{font-size:10px;line-height:1.5;color:#7E9C96;margin:10px 0 0;}
 
 .main{flex:1;overflow-y:auto;background:var(--paper);}
 .topbar{
@@ -181,6 +179,28 @@ a{color:var(--teal);}
 .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 @media(max-width:520px){.grid-2{grid-template-columns:1fr;}}
+
+.related-results{
+  border:1px solid var(--line);border-radius:var(--radius);margin-top:4px;
+  max-height:160px;overflow-y:auto;background:#fff;
+}
+.related-results:empty{display:none;border:none;}
+.related-result-item{padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line);}
+.related-result-item:last-child{border-bottom:none;}
+.related-result-item:hover{background:var(--teal-pale);}
+.related-result-item .rr-so{font-weight:600;color:var(--teal);margin-right:6px;}
+.related-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.related-chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--teal-pale);color:var(--teal);
+  font-size:12.5px;padding:4px 8px 4px 10px;border-radius:20px;
+}
+.related-chip button{background:none;border:none;color:var(--teal);font-size:13px;line-height:1;padding:0;cursor:pointer;}
+.related-link-row{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:5px;margin-bottom:6px;background:var(--paper);cursor:pointer;
+}
+.related-link-row:hover{background:var(--teal-pale);}
+.related-link-row .badge{flex:none;}
 
 /* file rows inside detail */
 .file-row{
@@ -249,7 +269,7 @@ a{color:var(--teal);}
 <!-- ===================== LOGIN ===================== -->
 <div id="loginScreen">
   <div class="login-card">
-    <div class="login-seal">BQT</div>
+    <img src="logo.webp" alt="Jamona Heights" class="login-logo">
     <h1>Sổ Văn Thư</h1>
     <p class="sub">Quản lý công văn, thông báo &amp; hồ sơ nội bộ chung cư</p>
     <div class="login-error" id="loginError"></div>
@@ -264,7 +284,7 @@ a{color:var(--teal);}
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Đăng nhập</button>
     </form>
-    <p class="login-hint">Tài khoản mặc định lần đầu: <b>admin / admin123</b> — hãy đổi mật khẩu ngay sau khi vào hệ thống.</p>
+    <p class="copyright-line">Ứng dụng được xây dựng và phát triển bởi Mr Tiến Quỳnh - Ban quản trị chung cư Jamona Heights</p>
   </div>
 </div>
 
@@ -274,6 +294,7 @@ a{color:var(--teal);}
     <div class="sidebar-scrim" id="scrim"></div>
     <aside class="sidebar" id="sidebar">
       <div class="brand">
+        <img src="logo.webp" alt="Jamona Heights" class="brand-logo">
         <div class="mark">Sổ Văn Thư</div>
         <div class="tag">Ban Quản Trị Chung Cư</div>
       </div>
@@ -282,6 +303,7 @@ a{color:var(--teal);}
         <div class="who" id="whoName"></div>
         <div class="who-role" id="whoRole"></div>
         <button class="btn btn-secondary btn-block" id="logoutBtn" style="margin-top:4px;">Đăng xuất</button>
+        <p class="sidebar-copyright">Ứng dụng được xây dựng và phát triển bởi Mr Tiến Quỳnh - Ban quản trị chung cư Jamona Heights</p>
       </div>
     </aside>
 
@@ -336,6 +358,12 @@ a{color:var(--teal);}
         <label>Mô tả ngắn gọn</label>
         <input type="text" id="rf_moTa" placeholder="Ghi chú ngắn để dễ tra cứu sau này">
       </div>
+      <div class="field">
+        <label>Văn bản liên quan</label>
+        <input type="text" id="rf_relatedSearch" placeholder="Gõ để tìm văn bản đã có trong hệ thống…">
+        <div id="rf_relatedResults" class="related-results"></div>
+        <div id="rf_relatedChips" class="related-chips"></div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" data-close="recordModalBackdrop">Huỷ</button>
@@ -354,6 +382,7 @@ a{color:var(--teal);}
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-foot">
       <button class="btn btn-danger" id="deleteRecordBtn" style="margin-right:auto;">Xoá hồ sơ</button>
+      <button class="btn btn-secondary" id="editRecordBtn">Sửa hồ sơ</button>
       <button class="btn btn-secondary" data-close="detailModalBackdrop">Đóng</button>
     </div>
   </div>
@@ -395,6 +424,23 @@ a{color:var(--teal);}
   </div>
 </div>
 
+<!-- ===================== MODAL: Danh mục (admin) ===================== -->
+<div class="modal-backdrop" id="categoryModalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="categoryModalTitle">Thêm danh mục mới</h3>
+      <button class="modal-close" data-close="categoryModalBackdrop">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Tên danh mục *</label><input type="text" id="cf_ten" placeholder="VD: Tờ trình"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-close="categoryModalBackdrop">Huỷ</button>
+      <button class="btn btn-primary" id="categorySaveBtn">Lưu</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =====================================================================
    CẤU HÌNH: KHÔNG dán URL Apps Script trực tiếp ở đây nữa.
@@ -409,9 +455,9 @@ const API_URL = "/api";
 const state = {
   token: localStorage.getItem('svt_token') || null,
   user: JSON.parse(localStorage.getItem('svt_user') || 'null'),
-  categories: [],
-  currentCategory: null, // null = tổng quan (tất cả)
-  view: 'list', // list | stats | users
+  categories: [], // [{id, ten, thuTu}]
+  currentCategory: null, // tên danh mục (string) đang lọc, null = tổng quan (tất cả)
+  view: 'list', // list | stats | users | categories
   filters: { keyword: '', tuNgay: '', denNgay: '', page: 1, pageSize: 20 },
   currentRecord: null,
 };
@@ -498,11 +544,12 @@ function renderNav() {
   html += navItem('📋', 'Tổng quan', 'list', null, state.currentCategory === null && state.view === 'list');
   html += `<div class="nav-section">Loại văn bản</div>`;
   state.categories.forEach(c => {
-    html += navItem('•', c, 'list', c, state.currentCategory === c && state.view === 'list');
+    html += navItem('•', c.ten, 'list', c.ten, state.currentCategory === c.ten && state.view === 'list');
   });
   html += `<div class="nav-section">Khác</div>`;
   html += navItem('📊', 'Thống kê', 'stats', null, state.view === 'stats');
   if (state.user.role === 'admin') {
+    html += navItem('🗂️', 'Quản lý danh mục', 'categories', null, state.view === 'categories');
     html += navItem('👤', 'Người dùng', 'users', null, state.view === 'users');
   }
   nav.innerHTML = html;
@@ -524,9 +571,9 @@ function goTo(view, cat) {
   state.currentCategory = cat;
   state.filters.page = 1;
   document.getElementById('searchBoxWrap').style.display = view === 'list' ? 'block' : 'none';
-  document.getElementById('newRecordBtn').style.display = view === 'list' || view === 'users' ? 'inline-flex' : 'none';
-  document.getElementById('newRecordBtn').textContent = view === 'users' ? '+ Tạo tài khoản' : '+ Tạo hồ sơ';
-  document.getElementById('pageTitle').textContent = cat || (view === 'stats' ? 'Thống kê' : view === 'users' ? 'Người dùng' : 'Tổng quan');
+  document.getElementById('newRecordBtn').style.display = (view === 'list' || view === 'users' || view === 'categories') ? 'inline-flex' : 'none';
+  document.getElementById('newRecordBtn').textContent = view === 'users' ? '+ Tạo tài khoản' : view === 'categories' ? '+ Thêm danh mục' : '+ Tạo hồ sơ';
+  document.getElementById('pageTitle').textContent = cat || (view === 'stats' ? 'Thống kê' : view === 'users' ? 'Người dùng' : view === 'categories' ? 'Quản lý danh mục' : 'Tổng quan');
   renderNav();
   render();
 }
@@ -536,6 +583,7 @@ async function render() {
   const content = document.getElementById('content');
   if (state.view === 'stats') return renderStats(content);
   if (state.view === 'users') return renderUsers(content);
+  if (state.view === 'categories') return renderCategories(content);
   return renderList(content);
 }
 
@@ -567,6 +615,9 @@ async function renderList(content) {
 }
 
 let searchDebounce;
+let currentRelatedSearchDebounce;
+let selectedRelated = []; // [{id, soVanBan, tenVanBan}]
+let currentEditingRecordId = null;
 document.getElementById('searchInput').addEventListener('input', (e) => {
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(() => {
@@ -621,19 +672,81 @@ function renderRecordRow(r) {
 /* ===================== TẠO / SỬA HỒ SƠ ===================== */
 document.getElementById('newRecordBtn').addEventListener('click', () => {
   if (state.view === 'users') { openUserModal(); return; }
+  if (state.view === 'categories') { openCategoryModal(); return; }
   openRecordModal();
 });
 
-function openRecordModal() {
-  document.getElementById('recordModalTitle').textContent = 'Tạo hồ sơ mới';
+function renderRelatedChips() {
+  const box = document.getElementById('rf_relatedChips');
+  box.innerHTML = selectedRelated.map(r => `
+    <span class="related-chip">
+      ${escapeHtml(r.soVanBan ? r.soVanBan + ' — ' : '')}${escapeHtml(r.tenVanBan)}
+      <button type="button" data-id="${r.id}">✕</button>
+    </span>`).join('');
+  box.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRelated = selectedRelated.filter(r => r.id !== btn.dataset.id);
+      renderRelatedChips();
+    });
+  });
+}
+
+document.getElementById('rf_relatedSearch').addEventListener('input', (e) => {
+  clearTimeout(currentRelatedSearchDebounce);
+  const keyword = e.target.value.trim();
+  const resultsBox = document.getElementById('rf_relatedResults');
+  if (!keyword) { resultsBox.innerHTML = ''; return; }
+  currentRelatedSearchDebounce = setTimeout(async () => {
+    try {
+      const data = await api('listRecords', { filters: { keyword, pageSize: 8, excludeId: currentEditingRecordId || '' } });
+      const already = new Set(selectedRelated.map(r => r.id));
+      const items = data.items.filter(r => !already.has(r.id));
+      resultsBox.innerHTML = items.length
+        ? items.map(r => `
+          <div class="related-result-item" data-id="${r.id}" data-so="${escapeAttr(r.soVanBan||'')}" data-ten="${escapeAttr(r.tenVanBan)}">
+            ${r.soVanBan ? `<span class="rr-so">${escapeHtml(r.soVanBan)}</span>` : ''}${escapeHtml(r.tenVanBan)}
+          </div>`).join('')
+        : `<div class="related-result-item" style="color:var(--ink-soft);cursor:default;">Không tìm thấy văn bản phù hợp</div>`;
+      resultsBox.querySelectorAll('.related-result-item[data-id]').forEach(el => {
+        el.addEventListener('click', () => {
+          selectedRelated.push({ id: el.dataset.id, soVanBan: el.dataset.so, tenVanBan: el.dataset.ten });
+          renderRelatedChips();
+          resultsBox.innerHTML = '';
+          document.getElementById('rf_relatedSearch').value = '';
+        });
+      });
+    } catch (err) { /* im lặng, không chặn form */ }
+  }, 300);
+});
+
+function openRecordModal(editRecord) {
   const sel = document.getElementById('rf_phanLoai');
-  sel.innerHTML = state.categories.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
-  if (state.currentCategory) sel.value = state.currentCategory;
-  document.getElementById('rf_soVanBan').value = '';
-  document.getElementById('rf_ngayGio').value = toDatetimeLocal(new Date());
-  document.getElementById('rf_tenVanBan').value = '';
-  document.getElementById('rf_noiDung').value = '';
-  document.getElementById('rf_moTa').value = '';
+  sel.innerHTML = state.categories.map(c => `<option value="${escapeAttr(c.ten)}">${escapeHtml(c.ten)}</option>`).join('');
+  document.getElementById('rf_relatedSearch').value = '';
+  document.getElementById('rf_relatedResults').innerHTML = '';
+
+  if (editRecord) {
+    document.getElementById('recordModalTitle').textContent = 'Sửa hồ sơ';
+    currentEditingRecordId = editRecord.id;
+    sel.value = editRecord.phanLoai;
+    document.getElementById('rf_soVanBan').value = editRecord.soVanBan || '';
+    document.getElementById('rf_ngayGio').value = toDatetimeLocal(new Date(editRecord.ngayGio));
+    document.getElementById('rf_tenVanBan').value = editRecord.tenVanBan || '';
+    document.getElementById('rf_noiDung').value = editRecord.noiDung || '';
+    document.getElementById('rf_moTa').value = editRecord.moTa || '';
+    selectedRelated = (editRecord.relatedRecords || []).map(r => ({ id: r.id, soVanBan: r.soVanBan, tenVanBan: r.tenVanBan }));
+  } else {
+    document.getElementById('recordModalTitle').textContent = 'Tạo hồ sơ mới';
+    currentEditingRecordId = null;
+    if (state.currentCategory) sel.value = state.currentCategory;
+    document.getElementById('rf_soVanBan').value = '';
+    document.getElementById('rf_ngayGio').value = toDatetimeLocal(new Date());
+    document.getElementById('rf_tenVanBan').value = '';
+    document.getElementById('rf_noiDung').value = '';
+    document.getElementById('rf_moTa').value = '';
+    selectedRelated = [];
+  }
+  renderRelatedChips();
   openModal('recordModalBackdrop');
 }
 
@@ -645,16 +758,30 @@ document.getElementById('recordSaveBtn').addEventListener('click', async () => {
     tenVanBan: document.getElementById('rf_tenVanBan').value.trim(),
     noiDung: document.getElementById('rf_noiDung').value.trim(),
     moTa: document.getElementById('rf_moTa').value.trim(),
+    lienQuanIds: selectedRelated.map(r => r.id),
   };
   if (!data.tenVanBan) { toast('Vui lòng nhập tên văn bản', true); return; }
+  const btn = document.getElementById('recordSaveBtn');
+  btn.disabled = true;
   try {
-    const rec = await api('createRecord', { data });
+    let rec;
+    if (currentEditingRecordId) {
+      rec = await api('updateRecord', { hoSoId: currentEditingRecordId, data });
+      toast('Đã cập nhật hồ sơ.');
+    } else {
+      rec = await api('createRecord', { data });
+      toast('Đã tạo hồ sơ. Bạn có thể thêm file đính kèm ngay bây giờ.');
+    }
     closeModal('recordModalBackdrop');
-    toast('Đã tạo hồ sơ. Bạn có thể thêm file đính kèm ngay bây giờ.');
-    await loadList();
-    openDetail(rec.id);
+    loadList(); // cập nhật danh sách nền, không cần chờ
+    // rec đã là chi tiết đầy đủ (kèm files, relatedRecords) — mở luôn, khỏi gọi lại API
+    state.currentRecord = rec;
+    openModal('detailModalBackdrop');
+    renderDetail(rec);
   } catch (err) {
     toast(err.message, true);
+  } finally {
+    btn.disabled = false;
   }
 });
 
@@ -689,6 +816,14 @@ function renderDetail(rec) {
       </div>`).join('')
     : `<p style="color:var(--ink-soft);font-size:13.5px;">Chưa có file đính kèm nào.</p>`;
 
+  const relatedHtml = (rec.relatedRecords && rec.relatedRecords.length)
+    ? rec.relatedRecords.map(r => `
+      <div class="related-link-row" onclick="openDetail('${r.id}')">
+        <span class="badge">${escapeHtml(r.phanLoai)}</span>
+        <span>${r.soVanBan ? escapeHtml(r.soVanBan) + ' — ' : ''}${escapeHtml(r.tenVanBan)}</span>
+      </div>`).join('')
+    : `<p style="color:var(--ink-soft);font-size:13.5px;">Chưa liên kết với văn bản nào.</p>`;
+
   document.getElementById('detailBody').innerHTML = `
     <div class="grid-2" style="margin-bottom:14px;">
       <div><label style="font-size:11.5px;color:var(--ink-soft);">Số văn bản</label><div>${escapeHtml(rec.soVanBan || '—')}</div></div>
@@ -705,14 +840,20 @@ function renderDetail(rec) {
     <div id="fileList">${filesHtml}</div>
     <input type="file" id="filePicker" multiple style="display:none;">
     <div id="uploadQueue"></div>
-    <div style="margin-top:10px;">
+    <div style="margin:10px 0 20px;">
       <a href="${rec.folderUrl}" target="_blank" style="font-size:12.5px;">📁 Mở thư mục gốc trên Google Drive</a>
     </div>
+    <h3 style="margin:0 0 10px;font-size:15px;">Văn bản liên quan (${(rec.relatedRecords||[]).length})</h3>
+    <div id="relatedList">${relatedHtml}</div>
   `;
   document.getElementById('pickFilesBtn').addEventListener('click', () => document.getElementById('filePicker').click());
   document.getElementById('filePicker').addEventListener('change', onFilesPicked);
 
   document.getElementById('deleteRecordBtn').onclick = () => deleteRecordConfirm(rec.id);
+  document.getElementById('editRecordBtn').onclick = () => {
+    closeModal('detailModalBackdrop');
+    openRecordModal(rec);
+  };
 }
 
 function onFilesPicked(e) {
@@ -749,7 +890,7 @@ async function uploadOne(file, box) {
   try {
     const base64 = await fileToBase64(file);
     bar.style.width = '60%'; status.textContent = 'Đang tải lên Google Drive…';
-    await api('uploadFile', {
+    const newFile = await api('uploadFile', {
       hoSoId: state.currentRecord.id,
       fileName: file.name,
       mimeType: file.type || 'application/octet-stream',
@@ -758,9 +899,9 @@ async function uploadOne(file, box) {
     });
     bar.style.width = '100%'; status.textContent = 'Hoàn tất ✓';
     toast('Đã tải lên: ' + displayName);
-    const rec = await api('getRecordDetail', { hoSoId: state.currentRecord.id });
-    state.currentRecord = rec;
-    renderDetail(rec);
+    // Cập nhật cục bộ ngay, khỏi gọi lại API để lấy full chi tiết (nhanh hơn)
+    state.currentRecord.files.push(newFile);
+    renderDetail(state.currentRecord);
     loadList();
   } catch (err) {
     status.textContent = 'Lỗi: ' + err.message;
@@ -782,9 +923,8 @@ async function removeFile(fileId) {
   try {
     await api('deleteFile', { fileId });
     toast('Đã xoá file.');
-    const rec = await api('getRecordDetail', { hoSoId: state.currentRecord.id });
-    state.currentRecord = rec;
-    renderDetail(rec);
+    state.currentRecord.files = state.currentRecord.files.filter(f => f.id !== fileId);
+    renderDetail(state.currentRecord);
     loadList();
   } catch (err) { toast(err.message, true); }
 }
@@ -842,6 +982,83 @@ async function renderStats(content) {
   } catch (err) {
     content.innerHTML = escapeHtml(err.message);
   }
+}
+
+/* ===================== DANH MỤC (ADMIN) ===================== */
+async function reloadCategories() {
+  state.categories = await api('getCategories');
+}
+
+async function renderCategories(content) {
+  if (state.user.role !== 'admin') { content.innerHTML = 'Bạn không có quyền truy cập mục này.'; return; }
+  content.innerHTML = 'Đang tải…';
+  await reloadCategories();
+  content.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Tên danh mục</th><th style="width:160px;"></th></tr></thead>
+      <tbody>
+        ${state.categories.map(c => `
+          <tr>
+            <td>${escapeHtml(c.ten)}</td>
+            <td>
+              <button class="icon-btn" onclick="renameCategoryPrompt('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Đổi tên</button>
+              <button class="icon-btn danger" onclick="deleteCategoryConfirm('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Xoá</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
+      Lưu ý: không thể xoá danh mục đang còn hồ sơ sử dụng — hãy chuyển hồ sơ sang danh mục khác hoặc xoá hồ sơ đó trước.
+      Đổi tên danh mục sẽ tự động cập nhật lại tất cả hồ sơ đang thuộc danh mục này.
+    </p>
+  `;
+}
+
+function openCategoryModal() {
+  document.getElementById('categoryModalTitle').textContent = 'Thêm danh mục mới';
+  document.getElementById('cf_ten').value = '';
+  document.getElementById('categorySaveBtn').dataset.mode = 'create';
+  document.getElementById('categorySaveBtn').dataset.id = '';
+  openModal('categoryModalBackdrop');
+}
+
+function renameCategoryPrompt(id, tenCu) {
+  document.getElementById('categoryModalTitle').textContent = 'Đổi tên danh mục';
+  document.getElementById('cf_ten').value = tenCu;
+  document.getElementById('categorySaveBtn').dataset.mode = 'rename';
+  document.getElementById('categorySaveBtn').dataset.id = id;
+  openModal('categoryModalBackdrop');
+}
+
+document.getElementById('categorySaveBtn').addEventListener('click', async () => {
+  const ten = document.getElementById('cf_ten').value.trim();
+  if (!ten) { toast('Vui lòng nhập tên danh mục', true); return; }
+  const mode = document.getElementById('categorySaveBtn').dataset.mode;
+  const id = document.getElementById('categorySaveBtn').dataset.id;
+  try {
+    if (mode === 'rename') {
+      await api('updateCategory', { id, ten });
+      toast('Đã đổi tên danh mục.');
+    } else {
+      await api('createCategory', { ten });
+      toast('Đã thêm danh mục.');
+    }
+    closeModal('categoryModalBackdrop');
+    await reloadCategories();
+    renderNav();
+    render();
+  } catch (err) { toast(err.message, true); }
+});
+
+async function deleteCategoryConfirm(id, ten) {
+  if (!confirm(`Xoá danh mục "${ten}"?`)) return;
+  try {
+    await api('deleteCategory', { id });
+    toast('Đã xoá danh mục.');
+    await reloadCategories();
+    renderNav();
+    render();
+  } catch (err) { toast(err.message, true); }
 }
 
 /* ===================== NGƯỜI DÙNG (ADMIN) ===================== */
