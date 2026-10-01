@@ -251,6 +251,13 @@ a{color:var(--teal);}
 .table th{background:var(--paper-2);font-weight:600;color:var(--ink-soft);font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
 .table tr:last-child td{border-bottom:none;}
 
+.unsaved-bar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--gold-pale);border:1px solid var(--gold);color:#8A611F;
+  padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:13.5px;font-weight:600;
+}
+.unsaved-bar button{font-weight:600;}
+
 /* toast */
 #toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -506,12 +513,15 @@ const state = {
 
 /* ===================== API WRAPPER ===================== */
 async function api(action, payload = {}) {
+  const label = `[API] ${action} #${++apiCallCounter}`;
+  console.time(label);
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // tránh CORS preflight với Apps Script
     body: JSON.stringify(Object.assign({ action, token: state.token }, payload))
   });
   const raw = await res.text();
+  console.timeEnd(label);
   let json;
   try {
     json = JSON.parse(raw);
@@ -524,6 +534,7 @@ async function api(action, payload = {}) {
   if (!json.ok) throw new Error(json.error || 'Lỗi không xác định');
   return json.data;
 }
+let apiCallCounter = 0;
 
 function toast(msg, isError) {
   const t = document.getElementById('toast');
@@ -543,12 +554,17 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   try {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
+    // 1 lượt gọi duy nhất: vừa đăng nhập vừa nhận luôn danh mục + trạng thái +
+    // danh sách hồ sơ mặc định — khỏi phải gọi thêm vòng nào nữa mới vẽ được màn hình.
     const data = await api('login', { username, password });
     state.token = data.token;
-    state.user = data;
+    state.user = { username: data.username, fullName: data.fullName, role: data.role };
     localStorage.setItem('svt_token', data.token);
-    localStorage.setItem('svt_user', JSON.stringify(data));
-    await boot();
+    localStorage.setItem('svt_user', JSON.stringify(state.user));
+    applyBootData(data);
+    enterApp();
+    renderNav();
+    goTo('list', null); // đọc thẳng từ dữ liệu vừa nhận, không gọi mạng thêm lần nào
   } catch (err) {
     errBox.textContent = err.message;
     errBox.style.display = 'block';
@@ -564,14 +580,32 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 /* ===================== BOOT ===================== */
-async function boot() {
+function enterApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('whoName').textContent = state.user.fullName || state.user.username;
   document.getElementById('whoRole').textContent = state.user.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
+}
 
-  // Hiển thị ngay từ dữ liệu đã lưu trước đó (nếu có) để vào app tức thì,
-  // không phải chờ mạng — sau đó âm thầm làm mới lại phía dưới.
+// Gán categories + statuses + danh sách hồ sơ mặc định nhận được từ 1 lượt
+// gọi gộp (login hoặc bootstrap) vào state + cache, để màn "Tổng quan" đầu
+// tiên hiển thị ngay mà không phải gọi thêm mạng lần nào nữa.
+function applyBootData(bootData) {
+  state.categories = bootData.categories;
+  state.statuses = bootData.statuses;
+  try {
+    localStorage.setItem('svt_categories', JSON.stringify(bootData.categories));
+    localStorage.setItem('svt_statuses', JSON.stringify(bootData.statuses));
+  } catch (e) {}
+  if (bootData.records) {
+    listCache[listCacheKey_()] = { data: bootData.records, ts: Date.now() };
+  }
+}
+
+// Dùng khi mở lại app từ phiên đăng nhập trước đó (token còn trong localStorage).
+async function boot() {
+  // Hiện khung sidebar ngay từ dữ liệu danh mục/trạng thái đã lưu lần trước
+  // (nếu có) để không bị trống màn hình trong lúc chờ mạng.
   try {
     const cachedCats = JSON.parse(localStorage.getItem('svt_categories') || 'null');
     const cachedStatuses = JSON.parse(localStorage.getItem('svt_statuses') || 'null');
@@ -579,23 +613,18 @@ async function boot() {
     if (cachedStatuses) state.statuses = cachedStatuses;
   } catch (e) {}
 
-  if (state.categories.length) {
-    renderNav();
-    goTo('list', null);
-  }
+  enterApp();
+  if (state.categories.length) renderNav();
 
   try {
-    const [cats, statuses] = await Promise.all([api('getCategories'), api('getStatuses')]);
-    state.categories = cats;
-    state.statuses = statuses;
-    localStorage.setItem('svt_categories', JSON.stringify(cats));
-    localStorage.setItem('svt_statuses', JSON.stringify(statuses));
+    // 1 lượt gọi duy nhất lấy đủ categories + statuses + danh sách hồ sơ mặc định
+    const bootData = await api('bootstrap');
+    applyBootData(bootData);
   } catch (err) {
     if (!state.categories.length) { toast(err.message, true); return; }
   }
   renderNav();
-  if (state.view === 'list' || !state.categories.length) goTo('list', state.currentCategory);
-  else render();
+  goTo('list', state.currentCategory);
 }
 
 function renderNav() {
@@ -663,6 +692,7 @@ async function renderList(content) {
       <input type="date" id="f_denNgay" title="Đến ngày">
       <button class="btn btn-secondary" id="f_apply">Lọc</button>
       <button class="btn btn-ghost" id="f_clear">Xoá lọc</button>
+      <button class="btn btn-ghost" id="f_refresh" title="Lấy dữ liệu mới nhất">↻ Làm mới</button>
       <span class="filter-count" id="filterCount"></span>
     </div>
     <div id="recordList">Đang tải…</div>
@@ -683,6 +713,7 @@ async function renderList(content) {
     document.getElementById('searchInput').value = '';
     loadList();
   });
+  document.getElementById('f_refresh').addEventListener('click', () => loadList(true));
   await loadList();
 }
 
@@ -699,30 +730,36 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
   }, 350);
 });
 
-const listCache = {}; // key: chuỗi filter -> {items, total} lần gần nhất, để hiển thị tức thì khi quay lại
+const listCache = {}; // key: chuỗi filter -> {data, ts} lần gần nhất
+const LIST_FRESH_MS = 60000; // trong 60 giây kể từ lần tải trước, coi là còn "mới" -> khỏi gọi lại mạng
+
+function clearListCache() {
+  Object.keys(listCache).forEach(k => delete listCache[k]);
+}
 
 function listCacheKey_() {
   const f = state.filters;
   return JSON.stringify([state.currentCategory || '', f.keyword, f.tuNgay, f.denNgay, f.trangThai, f.page, f.pageSize]);
 }
 
-async function loadList() {
+async function loadList(forceRefresh) {
   const listEl = document.getElementById('recordList');
   if (!listEl) return;
   const key = listCacheKey_();
   const cached = listCache[key];
+  const isFresh = cached && (Date.now() - cached.ts < LIST_FRESH_MS);
 
-  if (cached) {
-    // Có dữ liệu cũ: hiển thị ngay (không chờ mạng), rồi âm thầm làm mới phía dưới
-    renderRecordListInto_(listEl, cached);
-  } else {
-    listEl.innerHTML = renderListSkeleton_();
-  }
+  if (cached) renderRecordListInto_(listEl, cached.data);
+
+  // Dữ liệu còn mới và không phải làm mới thủ công -> dừng luôn, khỏi gọi mạng (tức thời thật sự)
+  if (isFresh && !forceRefresh) return;
+
+  if (!cached) listEl.innerHTML = renderListSkeleton_();
 
   try {
     const filters = Object.assign({}, state.filters, { phanLoai: state.currentCategory || '' });
     const data = await api('listRecords', { filters });
-    listCache[key] = data;
+    listCache[key] = { data, ts: Date.now() };
     renderRecordListInto_(listEl, data);
   } catch (err) {
     if (!cached) listEl.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
@@ -885,9 +922,11 @@ document.getElementById('recordSaveBtn').addEventListener('click', async () => {
       toast('Đã tạo hồ sơ. Bạn có thể thêm file đính kèm ngay bây giờ.');
     }
     closeModal('recordModalBackdrop');
+    clearListCache();
     loadList(); // cập nhật danh sách nền, không cần chờ
     // rec đã là chi tiết đầy đủ (kèm files, relatedRecords) — mở luôn, khỏi gọi lại API
     state.currentRecord = rec;
+    detailCache[rec.id] = { data: rec, ts: Date.now() };
     openModal('detailModalBackdrop');
     renderDetail(rec);
   } catch (err) {
@@ -898,15 +937,29 @@ document.getElementById('recordSaveBtn').addEventListener('click', async () => {
 });
 
 /* ===================== CHI TIẾT HỒ SƠ + FILE ===================== */
+const detailCache = {}; // key: hoSoId -> {data, ts}
+const DETAIL_FRESH_MS = 60000;
+
 async function openDetail(id) {
   openModal('detailModalBackdrop');
-  document.getElementById('detailBody').innerHTML = 'Đang tải…';
+  const cached = detailCache[id];
+  const isFresh = cached && (Date.now() - cached.ts < DETAIL_FRESH_MS);
+
+  if (cached) {
+    state.currentRecord = cached.data;
+    renderDetail(cached.data);
+    if (isFresh) return; // vừa xem gần đây -> khỏi gọi mạng lại, tức thời
+  } else {
+    document.getElementById('detailBody').innerHTML = 'Đang tải…';
+  }
+
   try {
     const rec = await api('getRecordDetail', { hoSoId: id });
+    detailCache[id] = { data: rec, ts: Date.now() };
     state.currentRecord = rec;
     renderDetail(rec);
   } catch (err) {
-    document.getElementById('detailBody').innerHTML = escapeHtml(err.message);
+    if (!cached) document.getElementById('detailBody').innerHTML = escapeHtml(err.message);
   }
 }
 
@@ -1014,7 +1067,9 @@ async function uploadOne(file, box) {
     toast('Đã tải lên: ' + displayName);
     // Cập nhật cục bộ ngay, khỏi gọi lại API để lấy full chi tiết (nhanh hơn)
     state.currentRecord.files.push(newFile);
+    detailCache[state.currentRecord.id] = { data: state.currentRecord, ts: Date.now() };
     renderDetail(state.currentRecord);
+    clearListCache();
     loadList();
   } catch (err) {
     status.textContent = 'Lỗi: ' + err.message;
@@ -1037,7 +1092,9 @@ async function removeFile(fileId) {
     await api('deleteFile', { fileId });
     toast('Đã xoá file.');
     state.currentRecord.files = state.currentRecord.files.filter(f => f.id !== fileId);
+    detailCache[state.currentRecord.id] = { data: state.currentRecord, ts: Date.now() };
     renderDetail(state.currentRecord);
+    clearListCache();
     loadList();
   } catch (err) { toast(err.message, true); }
 }
@@ -1048,6 +1105,8 @@ async function deleteRecordConfirm(id) {
     await api('deleteRecord', { hoSoId: id });
     closeModal('detailModalBackdrop');
     toast('Đã xoá hồ sơ.');
+    delete detailCache[id];
+    clearListCache();
     loadList();
   } catch (err) { toast(err.message, true); }
 }
@@ -1103,49 +1162,82 @@ async function reloadCategories() {
   try { localStorage.setItem('svt_categories', JSON.stringify(state.categories)); } catch (e) {}
 }
 
+let categoryDraft = null; // mảng nháp khi đang sắp xếp lại danh mục (chưa lưu)
+
 async function renderCategories(content) {
   if (state.user.role !== 'admin') { content.innerHTML = 'Bạn không có quyền truy cập mục này.'; return; }
   content.innerHTML = 'Đang tải…';
   await reloadCategories();
+  categoryDraft = state.categories.slice();
   content.innerHTML = `
+    <div id="categoryUnsavedBar" class="unsaved-bar" style="display:none;">
+      <span>⚠️ Thứ tự chưa được lưu</span>
+      <button class="btn btn-primary" id="categorySaveOrderBtn">Lưu thứ tự</button>
+      <button class="btn btn-ghost" id="categoryDiscardOrderBtn">Huỷ thay đổi</button>
+    </div>
     <table class="table">
       <thead><tr><th style="width:70px;">Thứ tự</th><th>Tên danh mục</th><th style="width:160px;"></th></tr></thead>
-      <tbody>
-        ${state.categories.map((c, idx) => `
-          <tr>
-            <td>
-              <button class="icon-btn" title="Lên" ${idx === 0 ? 'disabled' : ''} onclick="moveCategory(${idx},-1)">↑</button>
-              <button class="icon-btn" title="Xuống" ${idx === state.categories.length - 1 ? 'disabled' : ''} onclick="moveCategory(${idx},1)">↓</button>
-            </td>
-            <td>${escapeHtml(c.ten)}</td>
-            <td>
-              <button class="icon-btn" onclick="renameCategoryPrompt('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Đổi tên</button>
-              <button class="icon-btn danger" onclick="deleteCategoryConfirm('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Xoá</button>
-            </td>
-          </tr>`).join('')}
-      </tbody>
+      <tbody id="categoryTbody"></tbody>
     </table>
     <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
-      Dùng nút ↑ ↓ để sắp xếp lại thứ tự hiển thị ngoài sidebar. Không thể xoá danh mục đang còn hồ sơ sử dụng —
-      hãy chuyển hồ sơ sang danh mục khác hoặc xoá hồ sơ đó trước. Đổi tên danh mục sẽ tự động cập nhật lại tất cả hồ sơ đang thuộc danh mục này.
+      Dùng nút ↑ ↓ để sắp xếp nháp, chỉnh xong bấm "Lưu thứ tự" để áp dụng 1 lần (không cần lưu sau mỗi lần bấm).
+      Không thể xoá danh mục đang còn hồ sơ sử dụng. Đổi tên danh mục sẽ tự động cập nhật lại tất cả hồ sơ đang thuộc danh mục này.
     </p>
   `;
+  renderCategoryTbody_();
+  document.getElementById('categorySaveOrderBtn').addEventListener('click', saveCategoryOrder);
+  document.getElementById('categoryDiscardOrderBtn').addEventListener('click', () => {
+    categoryDraft = state.categories.slice();
+    renderCategoryTbody_();
+    updateCategoryUnsavedBar_();
+  });
 }
 
-async function moveCategory(idx, dir) {
+function renderCategoryTbody_() {
+  document.getElementById('categoryTbody').innerHTML = categoryDraft.map((c, idx) => `
+    <tr>
+      <td>
+        <button class="icon-btn" title="Lên" ${idx === 0 ? 'disabled' : ''} onclick="moveCategory(${idx},-1)">↑</button>
+        <button class="icon-btn" title="Xuống" ${idx === categoryDraft.length - 1 ? 'disabled' : ''} onclick="moveCategory(${idx},1)">↓</button>
+      </td>
+      <td>${escapeHtml(c.ten)}</td>
+      <td>
+        <button class="icon-btn" onclick="renameCategoryPrompt('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Đổi tên</button>
+        <button class="icon-btn danger" onclick="deleteCategoryConfirm('${escapeAttr(c.id)}','${escapeAttr(c.ten)}')">Xoá</button>
+      </td>
+    </tr>`).join('');
+}
+
+function isCategoryOrderDirty_() {
+  return categoryDraft.some((c, i) => !state.categories[i] || c.id !== state.categories[i].id);
+}
+function updateCategoryUnsavedBar_() {
+  document.getElementById('categoryUnsavedBar').style.display = isCategoryOrderDirty_() ? 'flex' : 'none';
+}
+
+function moveCategory(idx, dir) {
   const target = idx + dir;
-  if (target < 0 || target >= state.categories.length) return;
-  const arr = state.categories.slice();
-  [arr[idx], arr[target]] = [arr[target], arr[idx]];
-  state.categories = arr; // cập nhật giao diện ngay, khỏi chờ mạng
-  render();
+  if (target < 0 || target >= categoryDraft.length) return;
+  [categoryDraft[idx], categoryDraft[target]] = [categoryDraft[target], categoryDraft[idx]];
+  renderCategoryTbody_(); // chỉ vẽ lại bảng, KHÔNG gọi mạng, KHÔNG đụng sidebar -> hết giật
+  updateCategoryUnsavedBar_();
+}
+
+async function saveCategoryOrder() {
+  const btn = document.getElementById('categorySaveOrderBtn');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
   try {
-    await api('reorderCategories', { ids: arr.map(c => c.id) });
-    renderNav();
+    await api('reorderCategories', { ids: categoryDraft.map(c => c.id) });
+    toast('Đã lưu thứ tự danh mục.');
+    await reloadCategories();
+    categoryDraft = state.categories.slice();
+    renderCategoryTbody_();
+    updateCategoryUnsavedBar_();
+    renderNav(); // chỉ cập nhật sidebar đúng 1 LẦN, sau khi đã lưu xong
   } catch (err) {
     toast(err.message, true);
-    await reloadCategories();
-    render();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Lưu thứ tự';
   }
 }
 
@@ -1202,47 +1294,81 @@ async function reloadStatuses() {
   try { localStorage.setItem('svt_statuses', JSON.stringify(state.statuses)); } catch (e) {}
 }
 
+let statusDraft = null; // mảng nháp khi đang sắp xếp lại trạng thái (chưa lưu)
+
 async function renderStatuses(content) {
   if (state.user.role !== 'admin') { content.innerHTML = 'Bạn không có quyền truy cập mục này.'; return; }
   content.innerHTML = 'Đang tải…';
   await reloadStatuses();
+  statusDraft = state.statuses.slice();
   content.innerHTML = `
+    <div id="statusUnsavedBar" class="unsaved-bar" style="display:none;">
+      <span>⚠️ Thứ tự chưa được lưu</span>
+      <button class="btn btn-primary" id="statusSaveOrderBtn">Lưu thứ tự</button>
+      <button class="btn btn-ghost" id="statusDiscardOrderBtn">Huỷ thay đổi</button>
+    </div>
     <table class="table">
       <thead><tr><th style="width:70px;">Thứ tự</th><th>Trạng thái</th><th style="width:160px;"></th></tr></thead>
-      <tbody>
-        ${state.statuses.map((s, idx) => `
-          <tr>
-            <td>
-              <button class="icon-btn" title="Lên" ${idx === 0 ? 'disabled' : ''} onclick="moveStatus(${idx},-1)">↑</button>
-              <button class="icon-btn" title="Xuống" ${idx === state.statuses.length - 1 ? 'disabled' : ''} onclick="moveStatus(${idx},1)">↓</button>
-            </td>
-            <td><span class="status-dot" style="background:${escapeAttr(s.mau || '#999')}"></span>${escapeHtml(s.ten)}</td>
-            <td>
-              <button class="icon-btn" onclick="editStatusPrompt('${escapeAttr(s.id)}','${escapeAttr(s.ten)}','${escapeAttr(s.mau||'')}')">Sửa</button>
-              <button class="icon-btn danger" onclick="deleteStatusConfirm('${escapeAttr(s.id)}','${escapeAttr(s.ten)}')">Xoá</button>
-            </td>
-          </tr>`).join('')}
-      </tbody>
+      <tbody id="statusTbody"></tbody>
     </table>
     <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
-      Dùng nút ↑ ↓ để sắp xếp thứ tự. Xoá 1 trạng thái sẽ gỡ nhãn đó khỏi các hồ sơ đang dùng (hồ sơ không bị xoá, chỉ về trạng thái "Chưa đặt").
+      Dùng nút ↑ ↓ để sắp xếp nháp, chỉnh xong bấm "Lưu thứ tự" để áp dụng 1 lần. Xoá 1 trạng thái sẽ gỡ nhãn đó khỏi các hồ sơ đang dùng
+      (hồ sơ không bị xoá, chỉ về trạng thái "Chưa đặt").
     </p>
   `;
+  renderStatusTbody_();
+  document.getElementById('statusSaveOrderBtn').addEventListener('click', saveStatusOrder);
+  document.getElementById('statusDiscardOrderBtn').addEventListener('click', () => {
+    statusDraft = state.statuses.slice();
+    renderStatusTbody_();
+    updateStatusUnsavedBar_();
+  });
 }
 
-async function moveStatus(idx, dir) {
+function renderStatusTbody_() {
+  document.getElementById('statusTbody').innerHTML = statusDraft.map((s, idx) => `
+    <tr>
+      <td>
+        <button class="icon-btn" title="Lên" ${idx === 0 ? 'disabled' : ''} onclick="moveStatus(${idx},-1)">↑</button>
+        <button class="icon-btn" title="Xuống" ${idx === statusDraft.length - 1 ? 'disabled' : ''} onclick="moveStatus(${idx},1)">↓</button>
+      </td>
+      <td><span class="status-dot" style="background:${escapeAttr(s.mau || '#999')}"></span>${escapeHtml(s.ten)}</td>
+      <td>
+        <button class="icon-btn" onclick="editStatusPrompt('${escapeAttr(s.id)}','${escapeAttr(s.ten)}','${escapeAttr(s.mau||'')}')">Sửa</button>
+        <button class="icon-btn danger" onclick="deleteStatusConfirm('${escapeAttr(s.id)}','${escapeAttr(s.ten)}')">Xoá</button>
+      </td>
+    </tr>`).join('');
+}
+
+function isStatusOrderDirty_() {
+  return statusDraft.some((s, i) => !state.statuses[i] || s.id !== state.statuses[i].id);
+}
+function updateStatusUnsavedBar_() {
+  document.getElementById('statusUnsavedBar').style.display = isStatusOrderDirty_() ? 'flex' : 'none';
+}
+
+function moveStatus(idx, dir) {
   const target = idx + dir;
-  if (target < 0 || target >= state.statuses.length) return;
-  const arr = state.statuses.slice();
-  [arr[idx], arr[target]] = [arr[target], arr[idx]];
-  state.statuses = arr;
-  render();
+  if (target < 0 || target >= statusDraft.length) return;
+  [statusDraft[idx], statusDraft[target]] = [statusDraft[target], statusDraft[idx]];
+  renderStatusTbody_(); // chỉ vẽ lại bảng, KHÔNG gọi mạng, KHÔNG đụng sidebar
+  updateStatusUnsavedBar_();
+}
+
+async function saveStatusOrder() {
+  const btn = document.getElementById('statusSaveOrderBtn');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
   try {
-    await api('reorderStatuses', { ids: arr.map(s => s.id) });
+    await api('reorderStatuses', { ids: statusDraft.map(s => s.id) });
+    toast('Đã lưu thứ tự trạng thái.');
+    await reloadStatuses();
+    statusDraft = state.statuses.slice();
+    renderStatusTbody_();
+    updateStatusUnsavedBar_();
   } catch (err) {
     toast(err.message, true);
-    await reloadStatuses();
-    render();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Lưu thứ tự';
   }
 }
 
